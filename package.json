@@ -1,0 +1,53 @@
+{
+  "name": "dsh-desktop",
+  "productName": "DeepSeek Harness Desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for the DeepSeek Harness Web UI (http://127.0.0.1:3080). Zero changes to the harness itself.",
+  "main": "main.js",
+  "author": "dsh-desktop",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "icons": "node scripts/make-icons.mjs",
+    "pack": "electron-builder --dir",
+    "pack:win": "electron-builder --win dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "local.dsh.desktop",
+    "productName": "DeepSeek Harness Desktop",
+    "files": [
+      "main.js",
+      "splash.html",
+      "assets/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.png",
+      "target": [
+        "dmg",
+        "dir"
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}
