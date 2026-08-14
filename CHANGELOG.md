@@ -7,6 +7,7 @@
 - Added: 启动等待页、错误页（含 HTML 转义）、菜单（重新加载 / 浏览器打开 / 后端日志 / DevTools）。
 - Added: Windows 支持——`npx.cmd` 命令解析、`taskkill /T` 进程树回收、win 构建脚本。
 - Fixed: 应用图标鲸鱼占满画布（1024×1024 + viewBox 裁剪到路径包围盒）。
+- Fixed: macOS 图标适配——图标改为苹果标准圆角矩形（824×824、rx 185、透明四角），与其他应用图标一致；渲染器从 qlmanage（强制不透明背景）改为 sips（保留透明）。
 - Fixed: `--smoke` 退出确定化（显式回收后端后 `app.exit(0)`）。
 - Changed: 源码模块化为 `src/`（main / dsh-service / window-options / window-lifecycle / error-page）。
 - Added: 单元测试（`node --test`，16 个用例：配置解析、端口探测、命令解析、窗口选项、错误页转义）。

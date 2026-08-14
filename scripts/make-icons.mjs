@@ -23,11 +23,12 @@ if (!fs.existsSync(svg)) {
   process.exit(1)
 }
 
-// 1. Rasterize the 1024x1024 SVG
-sh('qlmanage', ['-t', '-s', '1024', '-o', tmp, svg])
-const rendered = path.join(tmp, 'icon.svg.png')
+// 1. Rasterize the 1024x1024 SVG. sips (ImageIO) preserves transparency —
+//    qlmanage forces an opaque background, which would fill in rounded corners.
+sh('sips', ['-s', 'format', 'png', svg, '--out', png])
+const rendered = png
 if (!fs.existsSync(rendered)) {
-  console.error('qlmanage did not produce', rendered)
+  console.error('sips did not produce', rendered)
   process.exit(1)
 }
 fs.copyFileSync(rendered, png)
