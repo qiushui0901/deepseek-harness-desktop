@@ -232,6 +232,9 @@ function buildMenu() {
           },
         ]
       : []),
+    // Standard Edit menu — required for Cmd/Ctrl+C/V/X/A shortcuts to work at
+    // all: Electron wires clipboard accelerators through menu roles.
+    { role: 'editMenu' },
     {
       label: '窗口',
       submenu: [

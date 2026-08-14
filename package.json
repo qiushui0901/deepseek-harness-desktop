@@ -1,7 +1,7 @@
 {
   "name": "deepseek-harness-desktop",
   "productName": "DeepSeek Harness Desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An unofficial desktop wrapper for DeepSeek Harness — a native window that starts and hosts the official Harness Web UI locally.",
   "type": "module",
   "main": "src/main.js",

@@ -53,5 +53,7 @@ child.on('exit', (code) => {
     process.exit(0)
   }
   console.error(`packaged smoke FAILED: exit=${code}, SMOKE_OK=${output.includes('SMOKE_OK')}`)
+  const tail = output.split('\n').slice(-30).join('\n')
+  console.error('--- last app output ---\n' + tail + '\n------------------------')
   process.exit(1)
 })
