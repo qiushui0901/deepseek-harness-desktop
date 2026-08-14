@@ -96,6 +96,20 @@ macOS 构建为 ad-hoc 签名、未公证。首次启动：
 - AppImage：`chmod +x DeepSeek-Harness-Desktop-*.AppImage` 后直接运行。
 - Debian / Ubuntu：用软件安装器打开 deb，或 `sudo apt install ./DeepSeek-Harness-Desktop-*.deb`。
 
+## 更新机制
+
+**后端（DeepSeek Harness）**：后端通过 `npx --yes @deepseek-ai/dsh web` 启动，而 npx 每次都会向 npm registry 解析**最新发布版本**——所以只要上游把新版本发布到 npm，下次启动后端就是新版，无需任何操作。
+
+为了让更新可见，应用会在启动后静默查询 registry，与本地缓存版本对比：
+
+- 发现新版 → 弹窗提示「立即更新」（重启后端即可拉取新版本）或「稍后」
+- 菜单「窗口 → 检查更新…」可随时手动检查
+- 离线或查询失败时静默跳过，不打扰使用
+
+如需**固定版本**（可复现构建），在配置中设置 `dshVersion`。
+
+**壳本身（本应用）**：通过本仓库的 GitHub Releases 发布（推送 `v*` tag 由 CI 自动构建），升级请关注 Releases 页面。
+
 ## 配置
 
 配置文件位于 Electron `userData` 目录：macOS 为
@@ -110,6 +124,8 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
   "cwd": "/path/to/deepseek-harness",
   "autoStart": true,
   "shutdownOnQuit": true,
+  "updateNotifications": true,
+  "dshVersion": "0.1.0-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -120,6 +136,8 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `command` / `args` / `cwd` | 后端启动命令；把 `cwd` 指向本地 checkout 可改用 `pnpm dsh web` |
 | `autoStart` | 端口无监听时自动启动后端（默认 `true`） |
 | `shutdownOnQuit` | 退出时停止由本应用启动的后端（默认 `true`） |
+| `updateNotifications` | 启动后自动检查 npm 最新版并提示（默认 `true`） |
+| `dshVersion` | 固定后端版本（如 `0.1.0-rc.6`）；不设置则始终跟随最新版 |
 | `startupTimeoutMs` | 就绪等待超时，超时后显示错误页 |
 
 环境变量优先级高于配置文件：
@@ -130,6 +148,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `DSH_DESKTOP_COMMAND` | `command` |
 | `DSH_DESKTOP_ARGS` | `args`（空格分隔字符串） |
 | `DSH_DESKTOP_CWD` | `cwd` |
+| `DSH_DESKTOP_DSH_VERSION` | `dshVersion` |
 | `DSH_DESKTOP_STARTUP_TIMEOUT_MS` | `startupTimeoutMs` |
 
 ## 安全模型

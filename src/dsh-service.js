@@ -40,11 +40,12 @@ export function loadConfig({ userDataDir, env = process.env, overrides = {} } = 
     /* use defaults */
   }
   const port = Number(env.DSH_DESKTOP_PORT ?? file.port ?? overrides.port ?? DEFAULT_PORT)
+  const dshVersion = env.DSH_DESKTOP_DSH_VERSION ?? file.dshVersion ?? null
   const fileArgs = file.args
   const argsSource =
     env.DSH_DESKTOP_ARGS ??
     (Array.isArray(fileArgs) ? fileArgs : fileArgs ? JSON.stringify(fileArgs) : null) ??
-    `--yes @deepseek-ai/dsh web --port ${port}`
+    `--yes @deepseek-ai/dsh${dshVersion ? '@' + dshVersion : ''} web --port ${port}`
   return {
     port,
     command: env.DSH_DESKTOP_COMMAND ?? file.command ?? overrides.command ?? 'npx',
@@ -52,6 +53,8 @@ export function loadConfig({ userDataDir, env = process.env, overrides = {} } = 
     cwd: env.DSH_DESKTOP_CWD ?? file.cwd ?? undefined,
     autoStart: file.autoStart !== false,
     shutdownOnQuit: file.shutdownOnQuit !== false,
+    updateNotifications: file.updateNotifications !== false,
+    dshVersion,
     startupTimeoutMs: Number(
       env.DSH_DESKTOP_STARTUP_TIMEOUT_MS ?? file.startupTimeoutMs ?? overrides.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS,
     ),

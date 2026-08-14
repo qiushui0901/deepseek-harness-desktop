@@ -31,6 +31,7 @@ import {
   backendLogPath,
 } from './dsh-service.js'
 import { loadErrorPage } from './error-page.js'
+import { fetchLatestDshVersion, latestCachedDshVersion, npxCacheRoots, compareVersions } from './updates.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_TITLE = 'DeepSeek Harness Desktop'
@@ -138,6 +139,12 @@ function loadApp() {
   const win = getMainWindow()
   if (!win || win.isDestroyed()) return
   win.loadURL(APP_URL())
+  // Update awareness: npx resolves the latest @deepseek-ai/dsh on every backend
+  // start, so a new npm release is picked up on the next restart. Check the
+  // registry quietly after the UI settles and notify if a newer version exists.
+  if (cfg.updateNotifications && !process.argv.includes('--smoke')) {
+    setTimeout(() => checkForUpdates({ manual: false }), 4000)
+  }
   if (process.argv.includes('--smoke')) {
     win.webContents.once('did-finish-load', () => {
       console.log('[dsh-desktop] SMOKE_OK', win.webContents.getURL())
@@ -145,6 +152,59 @@ function loadApp() {
       stopBackend(backend?.proc) // deterministic cleanup for smoke runs
       app.exit(0) // force exit: skips any page-level close interception
     })
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Update check
+// ---------------------------------------------------------------------------
+
+async function checkForUpdates({ manual = false }) {
+  const win = getMainWindow()
+  if (!win || win.isDestroyed()) return
+  const [latest, current] = await Promise.all([
+    fetchLatestDshVersion(),
+    Promise.resolve(latestCachedDshVersion(npxCacheRoots())),
+  ])
+  if (!latest) {
+    if (manual) {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: '检查更新',
+        message: '无法获取 DeepSeek Harness 的最新版本信息（可能处于离线状态）。',
+      })
+    }
+    return
+  }
+  const currentLabel = current ?? '未缓存'
+  if (current && compareVersions(latest, current) <= 0) {
+    if (manual) {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: '检查更新',
+        message: `已是最新版本：DeepSeek Harness ${latest}`,
+      })
+    }
+    return
+  }
+  const choice = dialog.showMessageBoxSync(win, {
+    type: 'info',
+    title: '发现新版本',
+    message: `DeepSeek Harness 有新版本可用：${latest}`,
+    detail:
+      `当前版本：${currentLabel}\n\n` +
+      (backend?.spawnedByUs
+        ? '点击「立即更新」将重启后端，下次启动时自动拉取新版本（网页会重新加载）。'
+        : '当前后端不是由本应用启动的（外部实例），请重启该实例后重新打开应用。'),
+    buttons: backend?.spawnedByUs ? ['立即更新', '稍后'] : ['知道了'],
+    defaultId: 0,
+    cancelId: 1,
+  })
+  if (choice === 0 && backend?.spawnedByUs) {
+    stopBackend(backend.proc)
+    backend = null
+    const ok = await startBackend()
+    if (ok && !quitting) win.loadURL(APP_URL())
   }
 }
 
@@ -177,6 +237,8 @@ function buildMenu() {
       submenu: [
         { label: '重新加载', role: 'reload' },
         { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { label: '检查更新…', click: () => checkForUpdates({ manual: true }) },
         { type: 'separator' },
         { label: '在浏览器中打开', click: () => shell.openExternal(APP_URL()) },
         { label: '打开后端日志', click: () => shell.openPath(backendLogPath(app.getPath('userData'))) },

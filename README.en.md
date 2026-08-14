@@ -96,6 +96,28 @@ The Windows installer is not commercially code-signed. If Microsoft Defender Sma
 - AppImage: run `chmod +x DeepSeek-Harness-Desktop-*.AppImage`, then launch it directly.
 - Debian / Ubuntu: open the deb with the system software installer, or run `sudo apt install ./DeepSeek-Harness-Desktop-*.deb`.
 
+## Updates
+
+**Backend (DeepSeek Harness)**: the backend is started with
+`npx --yes @deepseek-ai/dsh web`, and npx resolves the **latest published
+version** from the npm registry on every launch — so as soon as upstream
+publishes a new release to npm, the next backend start is the new version, no
+action needed.
+
+To make updates visible, the app quietly queries the registry after startup
+and compares it with the locally cached version:
+
+- Newer version found → dialog offering **Update now** (restarts the backend,
+  which pulls the new version) or **Later**
+- Menu **Window → Check for Updates…** runs a manual check anytime
+- Offline or registry failures are skipped silently
+
+To **pin a version** (reproducible builds), set `dshVersion` in the config.
+
+**The shell itself**: released through this repository's GitHub Releases
+(pushing a `v*` tag triggers the CI build); watch the Releases page for
+upgrades.
+
 ## Configuration
 
 The shell reads `<userData>/config.json` — on macOS
@@ -111,6 +133,8 @@ keys have defaults:
   "cwd": "/path/to/deepseek-harness",
   "autoStart": true,
   "shutdownOnQuit": true,
+  "updateNotifications": true,
+  "dshVersion": "0.1.0-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -121,6 +145,8 @@ keys have defaults:
 | `command` / `args` / `cwd` | Backend launch command; point `cwd` at a local checkout to run `pnpm dsh web` instead of `npx` |
 | `autoStart` | Start the backend when nothing listens (default `true`) |
 | `shutdownOnQuit` | Stop the backend the app started when quitting (default `true`) |
+| `updateNotifications` | Auto-check the npm registry after startup and notify (default `true`) |
+| `dshVersion` | Pin the backend version (e.g. `0.1.0-rc.6`); unset = always follow the latest |
 | `startupTimeoutMs` | How long to wait for readiness before showing an error |
 
 Environment variables override the file:
@@ -131,6 +157,7 @@ Environment variables override the file:
 | `DSH_DESKTOP_COMMAND` | `command` |
 | `DSH_DESKTOP_ARGS` | `args` (space-separated string) |
 | `DSH_DESKTOP_CWD` | `cwd` |
+| `DSH_DESKTOP_DSH_VERSION` | `dshVersion` |
 | `DSH_DESKTOP_STARTUP_TIMEOUT_MS` | `startupTimeoutMs` |
 
 ## Security model
