@@ -9,3 +9,4 @@
 - Added: electron-builder 打包配置（dmg / nsis / AppImage）。
 - Added: Windows 支持——`npx.cmd` 命令解析、`taskkill /T` 进程树回收、后端启动失败的友好错误页、win 构建脚本（`pack:win` / `dist:win`，nsis + portable + zip 三种产物）。
 - Fixed: `--smoke` 模式退出确定化（显式回收后端后用 `app.exit(0)`，避免页面关闭拦截导致进程残留并占住单实例锁）。
+- Fixed: 应用图标鲸鱼只占左上角——`assets/icon.svg` 声明 1024×1024 并将 viewBox 裁剪到鲸鱼包围盒，渲染后鲸鱼占满画布（99%×74% 居中）。
