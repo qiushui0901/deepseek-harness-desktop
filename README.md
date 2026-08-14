@@ -5,12 +5,12 @@
 </h1>
 
 <p align="center">
-  A minimal, local-first, cross-platform desktop shell for
-  <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>.
+  DeepSeek Harness（<a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>）
+  的轻量、本地优先、跨平台桌面外壳。
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+  <a href="README.en.md">English</a> · <strong>简体中文</strong>
 </p>
 
 <p align="center">
@@ -22,86 +22,85 @@
   <img alt="Linux" src="https://img.shields.io/badge/Linux-x64-171513.svg?style=flat-square" />
 </p>
 
-DeepSeek Harness Desktop packages the official DeepSeek Harness Web experience as a standalone desktop application. It removes the need to start the CLI manually or manage local ports while preserving the full Harness interface.
+DeepSeek Harness Desktop 把官方 DeepSeek Harness Web 体验封装成独立桌面应用：不用手动敲 CLI、不用管理本地端口，保留完整的 Harness 界面。
 
-This project focuses on desktop hosting. It does not fork, modify, inject into, or reimplement the Harness UI. Models, sessions, settings, plugins, and agent capabilities remain provided by the official `@deepseek-ai/dsh` package.
+本项目只负责桌面托管，**不 fork、不修改、不注入、不重写 Harness UI**。模型、会话、设置、插件与智能体能力全部由官方 `@deepseek-ai/dsh` 提供。
 
 > [!IMPORTANT]
-> This is an unofficial community wrapper and an early-stage project. The macOS builds are not Apple-notarized, and the Windows builds are not commercially code-signed. The app starts the Harness backend through `npx`, so **Node.js ≥ 18 is required** on the machine that runs it.
+> 这是非官方社区封装，处于早期阶段。macOS 构建未做 Apple 公证，Windows 构建未做商业代码签名。应用通过 `npx` 启动 Harness 后端，因此**运行机器需要 Node.js ≥ 18**。
 
-## Download
+## 下载
 
-| Platform | Architecture | Package | Download |
+| 平台 | 架构 | 包 | 下载 |
 | --- | --- | --- | --- |
-| macOS | Apple Silicon | DMG | [Download for Apple Silicon](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-arm64.dmg) |
-| macOS | Intel | DMG | [Download for Intel Mac](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-x64.dmg) |
-| Windows | x64 | Setup installer | [Download Windows installer](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-windows-x64.exe) |
-| Windows | x64 | Portable ZIP | [Download Windows ZIP](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-windows-x64.zip) |
-| Linux | x64 | AppImage | [Download AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-linux-x86_64.AppImage) |
-| Debian / Ubuntu | x64 | deb | [Download deb](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-linux-amd64.deb) |
+| macOS | Apple Silicon | DMG | [Apple Silicon 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-arm64.dmg) |
+| macOS | Intel | DMG | [Intel Mac 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-x64.dmg) |
+| Windows | x64 | 安装程序 | [Windows 安装版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-windows-x64.exe) |
+| Windows | x64 | 绿色 ZIP | [Windows 绿色版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-windows-x64.zip) |
+| Linux | x64 | AppImage | [AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-linux-x86_64.AppImage) |
+| Debian / Ubuntu | x64 | deb | [deb 包](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.0-linux-amd64.deb) |
 
-All current and historical packages are available on the [GitHub Releases page](https://github.com/qiushui0901/deepseek-harness-desktop/releases).
+全部历史版本见 [GitHub Releases 页面](https://github.com/qiushui0901/deepseek-harness-desktop/releases)。
 
-## Why this project exists
+## 这个项目解决什么
 
-DeepSeek Harness already provides the complete agent runtime and Web UI. This project supplies the host capabilities required for a desktop product:
+DeepSeek Harness 本身已提供完整的智能体运行时和 Web UI。本项目补齐桌面产品所需的宿主能力：
 
-- Start and stop the local Harness service automatically
-- Attach to a Harness instance you already started by hand
-- Wait for Harness readiness before displaying the window
-- Provide a single-instance desktop window and safe external navigation
-- Enable sandboxing, `contextIsolation`, and navigation restrictions
-- Package installable releases for macOS, Windows, and Linux
+- 自动启动/停止本地 Harness 服务
+- 若你已手动启动 Harness，则直接挂接，绝不重复拉起
+- 等 Harness 就绪后再显示窗口
+- 单实例桌面窗口与安全的外链处理
+- 开启沙箱、`contextIsolation` 与导航限制
+- 打包 macOS、Windows、Linux 可安装发行版
 
-## Features
+## 特性
 
-- Opens the official Harness interface as soon as the local service is ready
-- Shows a lightweight loading screen while the local Harness service starts
-- Attaches to an already-running `dsh web` instead of starting a second backend
-- Preserves the complete settings, models, sessions, plugins, and agent experience
-- Gracefully terminates the Harness child process (and its process tree on Windows) on exit
-- Offers to restart the backend when it crashes; backend logs are one menu click away
-- Listens only on `127.0.0.1`
-- Provides a Windows x64 installer and portable ZIP
-- Provides Linux x64 AppImage and deb packages
+- 本地服务一就绪即打开官方 Harness 界面
+- 服务启动期间显示轻量加载页
+- 检测到已运行的 `dsh web` 时直接挂接，不启动第二个后端
+- 完整保留设置、模型、会话、插件与智能体体验
+- 退出时优雅终止 Harness 子进程（Windows 上回收整个进程树）
+- 后端崩溃时提供一键重启；后端日志在菜单里一键打开
+- 只监听 `127.0.0.1`
+- Windows x64 安装版与绿色 ZIP
+- Linux x64 AppImage 与 deb
 
-## Requirements
+## 运行要求
 
-- **Node.js ≥ 18** — the app starts the official Harness backend via `npx --yes @deepseek-ai/dsh web` (first launch downloads the package).
+- **Node.js ≥ 18**——应用通过 `npx --yes @deepseek-ai/dsh web` 启动官方 Harness 后端（首次启动会下载该包）。
 
-## Installation
+## 安装
 
 ### macOS
 
-The macOS builds are ad-hoc signed but not Apple-notarized. On first launch:
+macOS 构建为 ad-hoc 签名、未公证。首次启动：
 
-1. Open the DMG and drag **DeepSeek Harness Desktop** into **Applications**.
-2. Try to open the app; if macOS blocks it, click **Done**.
-3. Open **System Settings → Privacy & Security**.
-4. Find DeepSeek Harness Desktop in the **Security** section and click **Open Anyway**.
-5. Confirm by clicking **Open** once more.
+1. 打开 DMG，把 **DeepSeek Harness Desktop** 拖进**应用程序**。
+2. 尝试打开；若被拦截，点击**完成**。
+3. 打开**系统设置 → 隐私与安全性**。
+4. 在**安全性**区域找到 DeepSeek Harness Desktop，点击**仍要打开**。
+5. 再次点击**打开**确认。
 
-This confirmation is normally required only once.
+一般只需确认一次。
 
 ### Windows
 
-The Windows installer is not commercially code-signed. If Microsoft Defender SmartScreen appears:
+安装包未做商业签名，若出现 SmartScreen 提示：
 
-1. Click **More info**.
-2. Click **Run anyway**.
-3. Complete the setup wizard.
+1. 点击**更多信息**。
+2. 点击**仍要运行**。
+3. 完成安装向导。
 
 ### Linux
 
-- AppImage: run `chmod +x DeepSeek-Harness-Desktop-*.AppImage`, then launch it directly.
-- Debian / Ubuntu: open the deb with the system software installer, or run `sudo apt install ./DeepSeek-Harness-Desktop-*.deb`.
+- AppImage：`chmod +x DeepSeek-Harness-Desktop-*.AppImage` 后直接运行。
+- Debian / Ubuntu：用软件安装器打开 deb，或 `sudo apt install ./DeepSeek-Harness-Desktop-*.deb`。
 
-## Configuration
+## 配置
 
-The shell reads `<userData>/config.json` — on macOS
-`~/Library/Application Support/DeepSeek Harness Desktop/config.json`, on
-Windows `%APPDATA%\DeepSeek Harness Desktop\config.json`. It is optional; all
-keys have defaults:
+配置文件位于 Electron `userData` 目录：macOS 为
+`~/Library/Application Support/DeepSeek Harness Desktop/config.json`，
+Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，所有字段均有默认值：
 
 ```json
 {
@@ -115,95 +114,89 @@ keys have defaults:
 }
 ```
 
-| Key | Meaning |
+| 键 | 含义 |
 | --- | --- |
-| `port` | Loopback port to probe and serve (default `3080`) |
-| `command` / `args` / `cwd` | Backend launch command; point `cwd` at a local checkout to run `pnpm dsh web` instead of `npx` |
-| `autoStart` | Start the backend when nothing listens (default `true`) |
-| `shutdownOnQuit` | Stop the backend the app started when quitting (default `true`) |
-| `startupTimeoutMs` | How long to wait for readiness before showing an error |
+| `port` | 探测与服务的回环端口（默认 `3080`） |
+| `command` / `args` / `cwd` | 后端启动命令；把 `cwd` 指向本地 checkout 可改用 `pnpm dsh web` |
+| `autoStart` | 端口无监听时自动启动后端（默认 `true`） |
+| `shutdownOnQuit` | 退出时停止由本应用启动的后端（默认 `true`） |
+| `startupTimeoutMs` | 就绪等待超时，超时后显示错误页 |
 
-Environment variables override the file:
+环境变量优先级高于配置文件：
 
-| Variable | Overrides |
+| 变量 | 覆盖 |
 | --- | --- |
 | `DSH_DESKTOP_PORT` | `port` |
 | `DSH_DESKTOP_COMMAND` | `command` |
-| `DSH_DESKTOP_ARGS` | `args` (space-separated string) |
+| `DSH_DESKTOP_ARGS` | `args`（空格分隔字符串） |
 | `DSH_DESKTOP_CWD` | `cwd` |
 | `DSH_DESKTOP_STARTUP_TIMEOUT_MS` | `startupTimeoutMs` |
 
-## Security model
+## 安全模型
 
-- Harness binds only to `127.0.0.1`
-- Node.js integration is disabled in the renderer
-- `contextIsolation` and the Chromium sandbox are enabled
-- New windows and cross-origin navigation open in the system browser
-- Harness runs as a separate child process, not inside the app process
+- Harness 只绑定 `127.0.0.1`
+- 渲染进程禁用 Node.js 集成
+- 开启 `contextIsolation` 与 Chromium 沙箱
+- 新窗口与跨源导航一律交给系统浏览器
+- Harness 以独立子进程运行，不在应用进程内
 
-## Runtime architecture
+## 运行时架构
 
 ```text
 DeepSeek Harness Desktop
-├── Electron Main
-│   ├── Single-instance window
-│   ├── Backend child-process lifecycle (probe → attach or spawn → wait)
-│   ├── Loopback port readiness checks
-│   └── Platform menu and external-link handling
+├── Electron 主进程
+│   ├── 单实例窗口
+│   ├── 后端子进程生命周期（探测 → 挂接或启动 → 等待就绪）
+│   ├── 回环端口就绪检查
+│   └── 平台菜单与外链处理
 │
-├── Harness Child Process (spawned via npx, only if nothing listens)
+├── Harness 子进程（仅当端口无监听时通过 npx 启动）
 │   └── @deepseek-ai/dsh web
 │       └── http://127.0.0.1:<port>
 │
-└── Sandboxed BrowserWindow
+└── 沙箱化 BrowserWindow
     └── DeepSeek Harness Web UI
 ```
 
-## Development
+## 开发
 
 ```sh
 npm install
-npm test                 # unit tests (node --test)
-npm run smoke            # dev-mode smoke test (opens a window briefly)
-npm run pack             # unpacked macOS .app
-npm run smoke:packaged   # smoke-test the packaged app
-npm run dist:mac:arm64   # macOS DMG + ZIP (arm64)
-npm run dist:mac:x64     # macOS DMG + ZIP (x64)
-npm run dist:win         # Windows installer + ZIP (x64)
-npm run dist:linux       # Linux AppImage + deb (x64)
+npm test                 # 单元测试（node --test）
+npm run smoke            # 开发模式冒烟（短暂弹出窗口）
+npm run pack             # 未打包目录版 macOS .app
+npm run smoke:packaged   # 对打包产物做冒烟测试
+npm run dist:mac:arm64   # macOS DMG + ZIP（arm64）
+npm run dist:mac:x64     # macOS DMG + ZIP（x64）
+npm run dist:win         # Windows 安装包 + ZIP（x64）
+npm run dist:linux       # Linux AppImage + deb（x64）
 ```
 
-Releases are built automatically by GitHub Actions: pushing a `v*` tag builds
-all platforms on their native runners, runs unit tests and a packaged-app
-smoke test, and publishes the artifacts to the GitHub Release.
+发布由 GitHub Actions 自动完成：推送 `v*` tag 后，各平台在原生 runner 上构建、跑单元测试与打包冒烟，并自动把产物发布到 GitHub Release。
 
-## Validation status
+## 验证状态
 
-| Platform | Packaging | Packaged startup | Web UI |
+| 平台 | 打包 | 打包启动 | Web UI |
 | --- | --- | --- | --- |
-| macOS Apple Silicon | DMG / ZIP | Passed | HTTP 200 |
-| macOS Intel | DMG / ZIP | CI-verified | HTTP 200 |
-| Windows x64 | NSIS / ZIP | CI-verified | HTTP 200 |
-| Linux x64 | AppImage / deb | CI-verified | HTTP 200 |
+| macOS Apple Silicon | DMG / ZIP | 通过 | HTTP 200 |
+| macOS Intel | DMG / ZIP | CI 验证 | HTTP 200 |
+| Windows x64 | NSIS / ZIP | CI 验证 | HTTP 200 |
+| Linux x64 | AppImage / deb | CI 验证 | HTTP 200 |
 
-Every release package is built on a matching GitHub-hosted runner and runs a
-packaged-app smoke test before publication.
+每个发布包都在对应的 GitHub runner 上构建，并在发布前运行打包冒烟测试。
 
-## Known limitations
+## 已知限制
 
-- The backend is fetched via `npx` at first launch — requires Node.js and an internet connection (subsequent launches use the npx cache)
-- Upstream DSH is a developer preview and may change rapidly
-- Apple Developer ID signing and notarization are not integrated
-- Commercial Windows code signing is not integrated, so SmartScreen may appear
-- Windows ARM64 and Linux ARM64 packages are not currently provided
-- Automatic updates are not integrated
+- 后端通过 `npx` 拉取，首次启动需要 Node.js 与网络（之后走 npx 缓存）
+- 上游 DSH 仍是开发者预览版，变化可能很快
+- 未集成 Apple Developer ID 签名与公证
+- 未集成商业 Windows 代码签名，SmartScreen 可能出现
+- 暂不提供 Windows ARM64 与 Linux ARM64 包
+- 未集成自动更新
 
-## Upstream version and license
+## 上游版本与许可证
 
-The desktop wrapper is available under the [MIT License](LICENSE). The bundled
-DeepSeek Harness runtime is also MIT-licensed; its notice is preserved in
-[`third-party-licenses/deepseek-harness-LICENSE`](third-party-licenses/deepseek-harness-LICENSE).
+本项目采用 [MIT License](LICENSE)。其打包的 DeepSeek Harness 运行时同为 MIT 协议，声明见
+[`third-party-licenses/deepseek-harness-LICENSE`](third-party-licenses/deepseek-harness-LICENSE)。
 
-This project is not affiliated with or endorsed by DeepSeek. DeepSeek Harness
-and related names belong to their respective owners. The application icon uses
-the whale artwork from the upstream DeepSeek Harness Web favicon.
+本项目与 DeepSeek 无隶属关系，亦未获其背书。DeepSeek Harness 及相关名称归各自权利人所有。应用图标使用了上游 DeepSeek Harness Web favicon 的鲸鱼图形。
