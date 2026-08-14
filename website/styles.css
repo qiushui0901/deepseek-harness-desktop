@@ -1,0 +1,254 @@
+/* DeepSeek Harness Desktop — landing page
+   Palette: ink #0b0e14 · panel #11151d · line #232b38 · text #e8ecf3 · muted #8b94a3 · accent #4d6bfe
+   Type: Space Grotesk (display) · Inter (body) · JetBrains Mono (terminal/utility) */
+
+:root {
+  --ink: #0b0e14;
+  --panel: #11151d;
+  --line: #232b38;
+  --text: #e8ecf3;
+  --muted: #8b94a3;
+  --accent: #4d6bfe;
+  --accent-soft: #7d95ff;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --display: "Space Grotesk", var(--sans);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 16px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-soft); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--accent-soft);
+  background: #18202e;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+/* ---- top bar ---- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 5vw, 64px);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.brand:hover { text-decoration: none; }
+.brand em { font-style: normal; color: var(--accent-soft); font-weight: 500; }
+
+.nav { display: flex; gap: 22px; font-size: 14px; }
+.nav a { color: var(--muted); }
+.nav a:hover { color: var(--text); text-decoration: none; }
+
+/* ---- hero ---- */
+
+.hero {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(72px, 12vh, 130px) 24px 40px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-size: clamp(44px, 8vw, 76px);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  margin: 0 0 24px;
+  font-weight: 700;
+}
+.hero h1 .dim { color: var(--muted); }
+
+.lede {
+  max-width: 560px;
+  margin: 0 auto 32px;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+.btn {
+  display: inline-block;
+  padding: 12px 26px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  border: 1px solid transparent;
+}
+.btn:hover { text-decoration: none; }
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover { background: var(--accent-soft); }
+.btn.ghost {
+  border-color: var(--line);
+  color: var(--text);
+}
+.btn.ghost:hover { border-color: var(--muted); background: var(--panel); }
+
+.note { margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+/* ---- terminal (the signature) ---- */
+
+.terminal {
+  max-width: 720px;
+  margin: 24px auto 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+}
+
+.terminal-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #2c3648; }
+.dot:first-child { background: #e5484d; }
+.dot:nth-child(2) { background: #d29922; }
+.dot:nth-child(3) { background: #3fb950; }
+.terminal-title {
+  margin-left: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.terminal-body {
+  padding: 18px 22px 20px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.85;
+  min-height: 190px;
+}
+.terminal-body p { margin: 0; color: var(--muted); white-space: pre-wrap; }
+.terminal-body p:first-child { color: var(--text); }
+.terminal-body .prompt { color: var(--accent-soft); }
+.terminal-body .ok { color: #3fb950; }
+.terminal-body [data-step] { opacity: 0; }
+
+/* ---- features ---- */
+
+.features { max-width: 960px; margin: 0 auto; padding: clamp(64px, 10vh, 110px) 24px 40px; }
+
+.section-title {
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: -0.01em;
+  margin: 0 0 28px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 22px 20px;
+}
+.card h3 { margin: 0 0 8px; font-size: 16px; font-family: var(--display); }
+.card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+/* ---- download ---- */
+
+.download { max-width: 960px; margin: 0 auto; padding: 40px 24px clamp(64px, 10vh, 110px); }
+
+.download-note { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.dl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+}
+.dl:hover { border-color: var(--accent); text-decoration: none; }
+.dl .os { font-weight: 600; font-family: var(--display); }
+.dl .arch { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+/* ---- footer ---- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 26px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+footer p { margin: 0; }
+
+/* ---- motion (respect reduced motion) ---- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .terminal-body [data-step] {
+    animation: step-in 0.4s ease forwards;
+  }
+  .terminal-body [data-step]:nth-child(2) { animation-delay: 0.5s; }
+  .terminal-body [data-step]:nth-child(3) { animation-delay: 1.2s; }
+  .terminal-body [data-step]:nth-child(4) { animation-delay: 2.0s; }
+  .terminal-body [data-step]:nth-child(5) { animation-delay: 2.8s; }
+  .terminal-body [data-step]:nth-child(6) { animation-delay: 3.6s; }
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- responsive ---- */
+
+@media (max-width: 560px) {
+  .nav { gap: 12px; }
+  .terminal-body { font-size: 12px; padding: 14px 16px 16px; }
+}

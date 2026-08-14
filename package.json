@@ -1,52 +1,141 @@
 {
-  "name": "dsh-desktop",
+  "name": "deepseek-harness-desktop",
   "productName": "DeepSeek Harness Desktop",
   "version": "0.1.0",
-  "private": true,
-  "description": "Desktop shell for the DeepSeek Harness Web UI (http://127.0.0.1:3080). Zero changes to the harness itself.",
-  "main": "main.js",
-  "author": "dsh-desktop",
+  "description": "An unofficial desktop wrapper for DeepSeek Harness — a native window that starts and hosts the official Harness Web UI locally.",
+  "type": "module",
+  "main": "src/main.js",
+  "author": {
+    "name": "qiushui0901",
+    "email": "qiushui0901@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qiushui0901/deepseek-harness-desktop.git"
+  },
+  "homepage": "https://github.com/qiushui0901/deepseek-harness-desktop",
+  "bugs": {
+    "url": "https://github.com/qiushui0901/deepseek-harness-desktop/issues"
+  },
   "scripts": {
     "start": "electron .",
+    "test": "node --test",
     "smoke": "electron . --smoke",
+    "smoke:packaged": "node scripts/smoke-packaged.mjs",
     "icons": "node scripts/make-icons.mjs",
     "pack": "electron-builder --dir",
     "pack:win": "electron-builder --win dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win"
+    "dist:mac:arm64": "electron-builder --mac dmg zip --arm64 --publish never",
+    "dist:mac:x64": "electron-builder --mac dmg zip --x64 --publish never",
+    "dist:win": "electron-builder --win nsis zip --x64 --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "local.dsh.desktop",
+    "appId": "io.github.qiushui0901.deepseek-harness-desktop",
     "productName": "DeepSeek Harness Desktop",
+    "artifactName": "DeepSeek-Harness-Desktop-${version}-${arch}.${ext}",
+    "afterPack": "scripts/after-pack.cjs",
     "files": [
-      "main.js",
-      "splash.html",
-      "assets/**"
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "LICENSE",
+      "third-party-licenses/**/*"
     ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
     "mac": {
       "category": "public.app-category.developer-tools",
-      "icon": "assets/icon.png",
+      "icon": "assets/icon.icns",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
       "target": [
-        "dmg",
-        "dir"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
       ]
     },
     "win": {
-      "icon": "assets/icon.png",
+      "icon": "assets/icon.ico",
+      "artifactName": "DeepSeek-Harness-Desktop-${version}-windows-${arch}.${ext}",
       "target": [
-        "nsis",
-        "portable",
-        "zip"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false
     },
     "linux": {
       "icon": "assets/icon.png",
+      "category": "Development",
+      "executableName": "deepseek-harness-desktop",
+      "artifactName": "DeepSeek-Harness-Desktop-${version}-linux-${arch}.${ext}",
       "target": [
-        "AppImage"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "DeepSeek Harness Desktop ${version}",
+      "backgroundColor": "#0e1116",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 140,
+          "y": 185
+        },
+        {
+          "x": 400,
+          "y": 185,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     }
   }

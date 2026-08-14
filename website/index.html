@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeepSeek Harness Desktop</title>
+  <meta name="description" content="A thin native shell that starts the official DeepSeek Harness Web UI locally and opens it in a window." />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/logo.svg" width="26" height="26" alt="" />
+      <span>DeepSeek Harness <em>Desktop</em></span>
+    </a>
+    <nav class="nav">
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/qiushui0901/deepseek-harness-desktop" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>
+        The Harness,<br />
+        <span class="dim">in a window.</span>
+      </h1>
+      <p class="lede">
+        A thin native shell that starts the official DeepSeek Harness Web UI
+        on your machine and opens it as a desktop app. No browser tabs,
+        no port juggling, no manual <code>dsh web</code>.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#download">Download</a>
+        <a class="btn ghost" href="https://github.com/qiushui0901/deepseek-harness-desktop" target="_blank" rel="noreferrer">Source on GitHub</a>
+      </div>
+      <p class="note">Requires Node.js ≥ 18 — the app starts Harness through <code>npx</code>.</p>
+    </section>
+
+    <section class="terminal" aria-label="Startup sequence">
+      <div class="terminal-head">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="terminal-title">dsh-desktop — startup log</span>
+      </div>
+      <div class="terminal-body">
+        <p><span class="prompt">$</span> deepseek-harness-desktop</p>
+        <p data-step>› probe 127.0.0.1:3080 … no listener</p>
+        <p data-step>› spawn npx --yes @deepseek-ai/dsh web --port 3080</p>
+        <p data-step>› wait for readiness … ok</p>
+        <p data-step>› open window → http://127.0.0.1:3080</p>
+        <p data-step class="ok">✓ Harness is up. Say hello.</p>
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <h2 class="section-title">What the shell does</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Starts itself</h3>
+          <p>
+            On launch it probes <code>127.0.0.1:3080</code>. If Harness is
+            already running, it attaches — and never starts a second backend.
+            Otherwise it launches <code>dsh web</code> and waits for readiness.
+          </p>
+        </article>
+        <article class="card">
+          <h3>One instance</h3>
+          <p>
+            A second launch just focuses the open window. No duplicate
+            processes, no port fights — the single-instance lock sees to that.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Survives crashes</h3>
+          <p>
+            If the backend exits, the app offers to restart it instead of
+            showing a dead page. Backend logs live one menu click away.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Stays local</h3>
+          <p>
+            Harness listens only on the loopback interface. The renderer runs
+            sandboxed — no Node integration — and external links open in your
+            browser.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="download" id="download">
+      <h2 class="section-title">Download</h2>
+      <p class="download-note">
+        Unsigned community builds — macOS will ask you to allow the first
+        launch, Windows SmartScreen will ask you to run anyway.
+      </p>
+      <div class="dl-grid">
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">macOS</span>
+          <span class="arch">Apple Silicon · DMG</span>
+        </a>
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">macOS</span>
+          <span class="arch">Intel · DMG</span>
+        </a>
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">Windows</span>
+          <span class="arch">x64 · Installer</span>
+        </a>
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">Windows</span>
+          <span class="arch">x64 · Portable ZIP</span>
+        </a>
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">Linux</span>
+          <span class="arch">x64 · AppImage</span>
+        </a>
+        <a class="dl" href="https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest">
+          <span class="os">Debian / Ubuntu</span>
+          <span class="arch">x64 · deb</span>
+        </a>
+      </div>
+      <p class="download-note">
+        All packages are also on the
+        <a href="https://github.com/qiushui0901/deepseek-harness-desktop/releases">Releases page</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      MIT licensed · Not affiliated with or endorsed by DeepSeek.
+      Whale artwork from the upstream DeepSeek Harness favicon.
+    </p>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
