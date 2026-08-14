@@ -27,6 +27,7 @@ import {
   waitForPort,
   spawnBackend,
   stopBackend,
+  resolveCommandPath,
   backendLogPath,
 } from './dsh-service.js'
 import { loadErrorPage } from './error-page.js'
@@ -82,8 +83,13 @@ function onBackendExit(code, signal) {
 }
 
 async function startBackend() {
+  // Resolve the command to an absolute path so Finder/Explorer launches (which
+  // have a minimal PATH) can still find npx under nvm / Homebrew / Node.js dirs.
+  const resolved = resolveCommandPath(cfg.command)
   backend = {
     proc: spawnBackend(cfg, {
+      command: resolved?.command,
+      pathEnv: resolved?.pathEnv ?? null,
       logPath: backendLogPath(app.getPath('userData')),
       onSpawnError: onBackendSpawnError,
       onExit: onBackendExit,

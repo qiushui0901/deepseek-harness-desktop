@@ -8,6 +8,7 @@ import {
   loadConfig,
   parseArgsString,
   resolveCommand,
+  resolveCommandPath,
   probePort,
   waitForPort,
   DEFAULT_PORT,
@@ -18,6 +19,14 @@ function tmpConfig(content) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-config-'))
   fs.writeFileSync(path.join(dir, 'config.json'), content)
   return dir
+}
+
+function makeExecutable(dir, name) {
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, name)
+  fs.writeFileSync(file, '#!/bin/sh\nexit 0\n')
+  fs.chmodSync(file, 0o755)
+  return file
 }
 
 test('parseArgsString splits on whitespace and drops empties', () => {
@@ -84,6 +93,41 @@ test('resolveCommand appends .cmd for bare names on win32 only', () => {
   assert.equal(resolveCommand('C:\\tools\\dsh.exe', 'win32'), 'C:\\tools\\dsh.exe')
   assert.equal(resolveCommand('npx', 'darwin'), 'npx')
   assert.equal(resolveCommand('npx', 'linux'), 'npx')
+})
+
+test('resolveCommandPath finds executables under nvm even with empty PATH', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-home-'))
+  const bin = path.join(home, '.nvm', 'versions', 'node', 'v99.0.0', 'bin')
+  makeExecutable(bin, 'npx')
+  const resolved = resolveCommandPath('npx', { platform: 'darwin', pathEnv: '/usr/bin:/bin', home })
+  assert.equal(resolved.command, path.join(bin, 'npx'))
+  assert.equal(resolved.pathEnv, bin)
+})
+
+test('resolveCommandPath searches PATH entries first', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-bin-'))
+  makeExecutable(dir, 'dsh')
+  const resolved = resolveCommandPath('dsh', { platform: 'darwin', pathEnv: dir })
+  assert.equal(resolved.command, path.join(dir, 'dsh'))
+})
+
+test('resolveCommandPath returns null when nothing matches', () => {
+  assert.equal(resolveCommandPath('no-such-command-xyz', { platform: 'darwin', pathEnv: '/usr/bin' }), null)
+})
+
+test('resolveCommandPath keeps absolute commands untouched', () => {
+  assert.deepEqual(resolveCommandPath('/opt/custom/dsh', { platform: 'darwin' }), {
+    command: '/opt/custom/dsh',
+    pathEnv: null,
+  })
+})
+
+test('resolveCommandPath finds .cmd shims on win32', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-win-'))
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'npx.cmd'), '@echo off\r\n')
+  const resolved = resolveCommandPath('npx', { platform: 'win32', pathEnv: dir })
+  assert.equal(resolved.command, path.join(dir, 'npx.cmd'))
 })
 
 test('probePort reports a listening local server and a closed port', async () => {

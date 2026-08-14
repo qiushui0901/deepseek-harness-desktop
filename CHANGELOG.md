@@ -8,6 +8,8 @@
 - Added: Windows 支持——`npx.cmd` 命令解析、`taskkill /T` 进程树回收、win 构建脚本。
 - Fixed: 应用图标鲸鱼占满画布（1024×1024 + viewBox 裁剪到路径包围盒）。
 - Fixed: macOS 图标适配——图标改为苹果标准圆角矩形（824×824、rx 185、透明四角），与其他应用图标一致；渲染器从 qlmanage（强制不透明背景）改为 sips（保留透明）。
+- Fixed: 图标鲸鱼位置偏离中心 92px——组合图标时按包围盒原点居中（实际 y 从 6.94 开始），改为按包围盒中心居中 + 渲染后像素级光学校正（bbox 中心精确落在 512,512）；图标组合逻辑移入 `scripts/make-icons.mjs`（源图为 `assets/whale.svg`）。
+- Fixed: Finder/Explorer 双击启动时后端无法自动拉起——GUI 启动的 PATH 为空，npx 装在 nvm/Homebrew 等目录找不到；新增 `resolveCommandPath`：按 PATH → nvm → Homebrew → 系统目录 → Windows npm 目录顺序解析命令绝对路径，并把所在目录注入子进程 PATH（npx 脚本才能找到 node）。
 - Fixed: `--smoke` 退出确定化（显式回收后端后 `app.exit(0)`）。
 - Changed: 源码模块化为 `src/`（main / dsh-service / window-options / window-lifecycle / error-page）。
 - Added: 单元测试（`node --test`，16 个用例：配置解析、端口探测、命令解析、窗口选项、错误页转义）。

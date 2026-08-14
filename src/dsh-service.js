@@ -12,6 +12,7 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
+import os from 'node:os'
 import path from 'node:path'
 
 export const DEFAULT_PORT = 3080
@@ -109,11 +110,68 @@ export function resolveCommand(cmd, platform = process.platform) {
   return cmd
 }
 
-export function spawnBackend(cfg, { logPath, onSpawnError, onExit }) {
+// Well-known install locations for Node.js tooling, searched when the app is
+// launched from Finder/Explorer where PATH is minimal or empty.
+function commonBinDirs(platform, home, env) {
+  const dirs = []
+  if (platform === 'win32') {
+    if (env.APPDATA) dirs.push(path.join(env.APPDATA, 'npm'))
+    if (env.ProgramFiles) dirs.push(path.join(env.ProgramFiles, 'nodejs'))
+    if (env['ProgramFiles(x86)']) dirs.push(path.join(env['ProgramFiles(x86)'], 'nodejs'))
+    if (env.LOCALAPPDATA) dirs.push(path.join(env.LOCALAPPDATA, 'Programs', 'nodejs'))
+  } else {
+    const nvmRoot = path.join(home, '.nvm', 'versions', 'node')
+    try {
+      for (const version of fs.readdirSync(nvmRoot)) {
+        dirs.push(path.join(nvmRoot, version, 'bin'))
+      }
+    } catch {
+      /* no nvm install */
+    }
+    if (platform === 'darwin') {
+      dirs.push('/opt/homebrew/bin', '/opt/homebrew/opt/node/bin')
+    }
+    dirs.push('/usr/local/bin', '/usr/bin')
+  }
+  return dirs
+}
+
+/**
+ * Resolve a bare command name to an absolute path, searching PATH first and
+ * then well-known Node.js install locations. Returns `{ command, pathEnv }`
+ * where `pathEnv` is the directory to prepend to the child's PATH (so scripts
+ * like npx can also find `node`), or `null` when nothing was found.
+ */
+export function resolveCommandPath(cmd, { platform = process.platform, pathEnv = process.env.PATH, home = os.homedir(), env = process.env } = {}) {
+  if (path.isAbsolute(cmd)) return { command: cmd, pathEnv: null }
+  const names = platform === 'win32' ? [cmd, `${cmd}.cmd`, `${cmd}.exe`] : [cmd]
+  const dirs = [...(pathEnv || '').split(path.delimiter).filter(Boolean), ...commonBinDirs(platform, home, env)]
+  const seen = new Set()
+  for (const dir of dirs) {
+    if (!dir || seen.has(dir)) continue
+    seen.add(dir)
+    for (const name of names) {
+      const candidate = path.join(dir, name)
+      try {
+        if (!fs.existsSync(candidate)) continue
+        if (platform !== 'win32') fs.accessSync(candidate, fs.constants.X_OK)
+        return { command: candidate, pathEnv: dir }
+      } catch {
+        /* keep looking */
+      }
+    }
+  }
+  return null
+}
+
+export function spawnBackend(cfg, { command = resolveCommand(cfg.command), pathEnv = null, logPath, onSpawnError, onExit }) {
   const log = fs.createWriteStream(logPath, { flags: 'a' })
-  const proc = spawn(resolveCommand(cfg.command), cfg.args, {
+  const proc = spawn(command, cfg.args, {
     cwd: cfg.cwd,
-    env: { ...process.env },
+    env: {
+      ...process.env,
+      ...(pathEnv ? { PATH: [pathEnv, process.env.PATH].filter(Boolean).join(path.delimiter) } : {}),
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   proc.stdout.pipe(log)
