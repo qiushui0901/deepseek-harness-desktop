@@ -33,12 +33,12 @@ This project focuses on desktop hosting. It does not fork, modify, inject into, 
 
 | Platform | Architecture | Package | Download |
 | --- | --- | --- | --- |
-| macOS | Apple Silicon | DMG | [Download for Apple Silicon](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-arm64.dmg) |
-| macOS | Intel | DMG | [Download for Intel Mac](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-x64.dmg) |
-| Windows | x64 | Setup installer | [Download Windows installer](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-windows-x64.exe) |
-| Windows | x64 | Portable ZIP | [Download Windows ZIP](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-windows-x64.zip) |
-| Linux | x64 | AppImage | [Download AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-linux-x86_64.AppImage) |
-| Debian / Ubuntu | x64 | deb | [Download deb](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.2-linux-amd64.deb) |
+| macOS | Apple Silicon | DMG | [Download for Apple Silicon](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-arm64.dmg) |
+| macOS | Intel | DMG | [Download for Intel Mac](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-x64.dmg) |
+| Windows | x64 | Setup installer | [Download Windows installer](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-windows-x64.exe) |
+| Windows | x64 | Portable ZIP | [Download Windows ZIP](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-windows-x64.zip) |
+| Linux | x64 | AppImage | [Download AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-linux-x86_64.AppImage) |
+| Debian / Ubuntu | x64 | deb | [Download deb](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-linux-amd64.deb) |
 
 All current and historical packages are available on the [GitHub Releases page](https://github.com/qiushui0901/deepseek-harness-desktop/releases).
 
@@ -134,7 +134,7 @@ keys have defaults:
   "autoStart": true,
   "shutdownOnQuit": true,
   "updateNotifications": true,
-  "dshVersion": "0.1.2-rc.6",
+  "dshVersion": "0.1.3-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -146,7 +146,7 @@ keys have defaults:
 | `autoStart` | Start the backend when nothing listens (default `true`) |
 | `shutdownOnQuit` | Stop the backend the app started when quitting (default `true`) |
 | `updateNotifications` | Auto-check the npm registry after startup and notify (default `true`) |
-| `dshVersion` | Pin the backend version (e.g. `0.1.2-rc.6`); unset = always follow the latest |
+| `dshVersion` | Pin the backend version (e.g. `0.1.3-rc.6`); unset = always follow the latest |
 | `startupTimeoutMs` | How long to wait for readiness before showing an error |
 
 Environment variables override the file:

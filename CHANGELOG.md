@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.2 (unreleased)
+## 0.1.3 (2026-08-15)
+
+- Fixed: Windows 后端启动 ENOENT——Node 在 Windows 上同时安装 `npx`（无扩展名 POSIX 脚本）、`npx.cmd`、`npx.exe`，命令解析优先匹配到了无法直接 spawn 的无扩展名文件；win32 上现在只查找 `.exe` → `.cmd`。这是 Windows 打包冒烟失败的根因（此前误判为 runner 慢）。
+- Changed: CI 冒烟确定性——`did-finish-load` 监听器在窗口创建后立即挂载；失败路径（spawn 错误、就绪超时、端口被非 Harness 占用）在冒烟模式下显式 `exit(1)` 并输出原因；新增 `uncaughtException`/`unhandledRejection` 全局钩子。
+- Changed: CI——macos-13（已退役，runner 永远排不到）改用 `macos-15-intel`；windows/linux 冒烟前预热 npx 缓存；linux 冒烟传 `--no-sandbox`（runner 无 SUID sandbox）并预装 Electron 运行库。
+- Added: 单元测试 1 个（win32 命令解析回归），共 45 个。
+
+## 0.1.2 (2026-08-15)
 
 - Fixed: 端口探测不验证服务身份——TCP 可连接即视为 Harness，任何占用 3080 的服务都会被挂接；改为 HTTP 健康检查（`probeHarness`），要求响应携带 Harness 特征标记 `__DSH_BOOT__`，并区分「无监听 / 非 Harness 服务 / 正常」，非 Harness 占用时显示明确错误页。
 - Fixed: 同窗跨源导航未拦截——新增 `will-navigate` 拦截（`src/navigation.js` 同源判定），页面发起的跨源导航一律交给系统浏览器，与 README 安全模型一致；`loadURL` 等程序化导航不受影响。
