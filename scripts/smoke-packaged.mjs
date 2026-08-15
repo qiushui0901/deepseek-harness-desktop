@@ -27,7 +27,8 @@ if (!fs.existsSync(appPath)) {
   process.exit(1)
 }
 
-const child = spawn(appPath, ['--smoke'], {
+const smokeArgs = ['--smoke', ...(process.platform === 'linux' ? ['--no-sandbox'] : [])]
+const child = spawn(appPath, smokeArgs, {
   env: { ...process.env, DSH_DESKTOP_STARTUP_TIMEOUT_MS: String(STARTUP_TIMEOUT_MS) },
   stdio: ['ignore', 'pipe', 'pipe'],
 })

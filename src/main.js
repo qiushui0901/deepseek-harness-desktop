@@ -41,6 +41,16 @@ let cfg = null
 let backend = null // { proc, spawnedByUs }
 let quitting = false
 
+// Surface silent failures: log anything uncaught instead of hanging or dying
+// without output (especially on CI smoke runs).
+process.on('uncaughtException', (err) => {
+  console.error('[dsh-desktop] uncaughtException:', err)
+  app.exit(1)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[dsh-desktop] unhandledRejection:', reason)
+})
+
 // ---------------------------------------------------------------------------
 // Backend lifecycle
 // ---------------------------------------------------------------------------
@@ -148,6 +158,7 @@ function createAppWindow() {
 function loadApp() {
   const win = getMainWindow()
   if (!win || win.isDestroyed()) return
+  if (process.argv.includes('--smoke')) console.log('[dsh-desktop] smoke: loading', APP_URL())
   win.loadURL(APP_URL())
   // Update awareness: npx resolves the latest @deepseek-ai/dsh on every backend
   // start, so a new npm release is picked up on the next restart. Check the
@@ -302,10 +313,13 @@ if (!gotLock) {
     cfg = loadConfig({ userDataDir: app.getPath('userData') })
     buildMenu()
     createAppWindow()
+    const smoke = process.argv.includes('--smoke')
+    if (smoke) console.log('[dsh-desktop] smoke: window created, probing', cfg.port)
 
     // Attach to an already-running instance — but only if the HTTP response
     // proves it is actually the Harness Web UI (not just any TCP listener).
     const probe = await probeHarness(cfg.port)
+    if (smoke) console.log('[dsh-desktop] smoke: probe =', JSON.stringify(probe))
     if (probe.ok) {
       loadApp()
       return
@@ -323,7 +337,9 @@ if (!gotLock) {
     }
     // Otherwise start the backend ourselves
     if (cfg.autoStart) {
+      if (smoke) console.log('[dsh-desktop] smoke: no listener, spawning backend:', cfg.command, cfg.args.join(' '))
       const ok = await startBackend()
+      if (smoke) console.log('[dsh-desktop] smoke: backend ready =', ok)
       if (ok && !quitting) loadApp()
     } else {
       loadErrorPage(getMainWindow(), {
