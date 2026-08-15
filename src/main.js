@@ -23,15 +23,15 @@ import { createMainWindow, getMainWindow, focusMainWindow } from './window-lifec
 import { createWindowOptions } from './window-options.js'
 import {
   loadConfig,
-  probePort,
-  waitForPort,
+  probeHarness,
+  waitForHarness,
   spawnBackend,
   stopBackend,
   resolveCommandPath,
   backendLogPath,
 } from './dsh-service.js'
 import { loadErrorPage } from './error-page.js'
-import { fetchLatestDshVersion, latestCachedDshVersion, npxCacheRoots, compareVersions } from './updates.js'
+import { fetchLatestDshVersion, latestCachedDshVersion, npxCacheRoots, resolveUpdateState } from './updates.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_TITLE = 'DeepSeek Harness Desktop'
@@ -63,6 +63,11 @@ function onBackendSpawnError(err) {
 
 function onBackendExit(code, signal) {
   if (quitting) return
+  if (process.argv.includes('--smoke')) {
+    // Never block CI smoke runs on a modal dialog.
+    console.error(`[dsh-desktop] backend exited during smoke (code=${code}, signal=${signal})`)
+    return
+  }
   const win = getMainWindow()
   if (win && !win.isDestroyed()) {
     const choice = dialog.showMessageBoxSync(win, {
@@ -76,7 +81,11 @@ function onBackendExit(code, signal) {
     })
     if (choice === 0) {
       backend = null
-      startBackend()
+      // Wait for the new backend and explicitly reload the page instead of
+      // hoping the old page reconnects on its own.
+      startBackend().then((ok) => {
+        if (ok && !quitting && !win.isDestroyed()) win.loadURL(APP_URL())
+      })
     } else {
       app.quit()
     }
@@ -97,7 +106,7 @@ async function startBackend() {
     }),
     spawnedByUs: true,
   }
-  const ok = await waitForPort(cfg.port, cfg.startupTimeoutMs)
+  const ok = await waitForHarness(cfg.port, cfg.startupTimeoutMs)
   if (!ok && !quitting) {
     loadErrorPage(getMainWindow(), {
       appTitle: APP_TITLE,
@@ -121,6 +130,7 @@ async function startBackend() {
 function createAppWindow() {
   return createMainWindow(createWindowOptions(), {
     splashFile: path.join(__dirname, 'startup.html'),
+    allowedOrigin: APP_URL(), // only same-origin page navigations stay in-window
     onFailLoad: (_e, code, desc, url) => {
       if (url.startsWith('file:')) return // ignore splash/error page failures
       loadErrorPage(getMainWindow(), {
@@ -162,11 +172,25 @@ function loadApp() {
 async function checkForUpdates({ manual = false }) {
   const win = getMainWindow()
   if (!win || win.isDestroyed()) return
-  const [latest, current] = await Promise.all([
+  // A custom backend command (e.g. a local checkout via command/cwd) is not
+  // managed by npx, so registry updates do not apply to it.
+  const customBackend = cfg.command !== 'npx' || cfg.cwd != null
+  if (customBackend) {
+    if (manual) {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: '检查更新',
+        message: '已配置自定义后端命令（config.json 中的 command/cwd），npm 更新检查不适用。',
+      })
+    }
+    return
+  }
+  const [latest, cached] = await Promise.all([
     fetchLatestDshVersion(),
     Promise.resolve(latestCachedDshVersion(npxCacheRoots())),
   ])
-  if (!latest) {
+  const state = resolveUpdateState({ latest, cached, pinned: cfg.dshVersion })
+  if (state.kind === 'unknown') {
     if (manual) {
       dialog.showMessageBox(win, {
         type: 'info',
@@ -176,23 +200,33 @@ async function checkForUpdates({ manual = false }) {
     }
     return
   }
-  const currentLabel = current ?? '未缓存'
-  if (current && compareVersions(latest, current) <= 0) {
+  if (state.kind === 'up-to-date') {
     if (manual) {
       dialog.showMessageBox(win, {
         type: 'info',
         title: '检查更新',
-        message: `已是最新版本：DeepSeek Harness ${latest}`,
+        message: `已是最新版本：DeepSeek Harness ${state.latest}`,
       })
     }
     return
   }
+  if (state.kind === 'pinned-older') {
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: '已固定版本',
+      message: `当前固定 DeepSeek Harness ${state.current}，最新版为 ${state.latest}。`,
+      detail: '更新检查不会绕过固定版本。如需升级，请修改 config.json 中的 dshVersion（或删除该字段以跟随最新版），然后重新启动应用。',
+      buttons: ['知道了'],
+    })
+    return
+  }
+  // update-available
   const choice = dialog.showMessageBoxSync(win, {
     type: 'info',
     title: '发现新版本',
-    message: `DeepSeek Harness 有新版本可用：${latest}`,
+    message: `DeepSeek Harness 有新版本可用：${state.latest}`,
     detail:
-      `当前版本：${currentLabel}\n\n` +
+      `当前版本：${state.current}\n\n` +
       (backend?.spawnedByUs
         ? '点击「立即更新」将重启后端，下次启动时自动拉取新版本（网页会重新加载）。'
         : '当前后端不是由本应用启动的（外部实例），请重启该实例后重新打开应用。'),
@@ -269,9 +303,22 @@ if (!gotLock) {
     buildMenu()
     createAppWindow()
 
-    // Attach to an already-running instance (e.g. user started `dsh web` by hand)
-    if (await probePort(cfg.port)) {
+    // Attach to an already-running instance — but only if the HTTP response
+    // proves it is actually the Harness Web UI (not just any TCP listener).
+    const probe = await probeHarness(cfg.port)
+    if (probe.ok) {
       loadApp()
+      return
+    }
+    if (probe.reason !== 'no-listener') {
+      loadErrorPage(getMainWindow(), {
+        appTitle: APP_TITLE,
+        title: '端口被其他服务占用',
+        message:
+          `端口 ${cfg.port} 有服务在监听，但它没有返回 DeepSeek Harness 的特征响应。` +
+          '\n\n请停止占用该端口的程序后重试，或在 config.json 中修改 port。',
+        retryUrl: APP_URL(),
+      })
       return
     }
     // Otherwise start the backend ourselves

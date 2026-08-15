@@ -91,6 +91,47 @@ export function waitForPort(port, timeoutMs, intervalMs = POLL_INTERVAL_MS) {
   })
 }
 
+/**
+ * HTTP health check that identifies the DeepSeek Harness Web UI by its
+ * characteristic `__DSH_BOOT__` marker, instead of treating any TCP listener
+ * on the port as Harness. Returns:
+ *   { ok: true, reason: 'harness' }            — Harness is serving
+ *   { ok: false, reason: 'not-harness' }       — something responds, but not Harness
+ *   { ok: false, reason: 'no-listener' }       — nothing is listening
+ *   { ok: false, reason: 'http-error' }        — server answered non-2xx
+ */
+export async function probeHarness(port, timeoutMs = PROBE_TIMEOUT_MS) {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(timeoutMs) })
+    if (!res.ok) return { ok: false, reason: 'http-error' }
+    const body = await res.text()
+    return body.includes('__DSH_BOOT__') ? { ok: true, reason: 'harness' } : { ok: false, reason: 'not-harness' }
+  } catch (err) {
+    const code = err?.cause?.code ?? err?.code
+    if (code === 'ECONNREFUSED' || code === 'ECONNRESET' || code === 'ENOTFOUND') {
+      return { ok: false, reason: 'no-listener' }
+    }
+    if (err?.name === 'TimeoutError') {
+      // A socket accepted the connection but never answered like Harness.
+      return { ok: false, reason: 'not-harness' }
+    }
+    return { ok: false, reason: 'no-listener' }
+  }
+}
+
+export function waitForHarness(port, timeoutMs, intervalMs = POLL_INTERVAL_MS) {
+  const start = Date.now()
+  return new Promise((resolve) => {
+    const tick = async () => {
+      const probe = await probeHarness(port)
+      if (probe.ok) return resolve(true)
+      if (Date.now() - start > timeoutMs) return resolve(false)
+      setTimeout(tick, intervalMs)
+    }
+    tick()
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Backend process
 // ---------------------------------------------------------------------------
@@ -203,8 +244,12 @@ export function stopBackend(proc, platform = process.platform) {
     }
   } else {
     proc.kill('SIGTERM')
-    setTimeout(() => {
-      if (!proc.killed) proc.kill('SIGKILL')
-    }, 3000).unref()
+    // `proc.killed` only means the signal was *sent*, not that the process
+    // exited — so escalate to SIGKILL based on the exit state instead.
+    const timer = setTimeout(() => {
+      if (proc.exitCode === null && proc.signalCode === null) proc.kill('SIGKILL')
+    }, 3000)
+    timer.unref()
+    proc.once('exit', () => clearTimeout(timer))
   }
 }

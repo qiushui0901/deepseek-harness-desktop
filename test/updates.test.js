@@ -9,6 +9,7 @@ import {
   readCachedDshVersions,
   latestCachedDshVersion,
   fetchLatestDshVersion,
+  resolveUpdateState,
 } from '../src/updates.js'
 
 test('compareVersions handles patch and minor bumps', () => {
@@ -75,4 +76,52 @@ test('fetchLatestDshVersion fails soft on errors, bad status and bad payloads', 
   assert.equal(await fetchLatestDshVersion({ fetchFn: async () => ({ ok: false, status: 404 }) }), null)
   assert.equal(await fetchLatestDshVersion({ fetchFn: async () => ({ ok: true, json: async () => ({}) }) }), null)
   assert.equal(await fetchLatestDshVersion({ fetchFn: async () => ({ ok: true, json: async () => ({ version: 'bogus' }) }) }), null)
+})
+
+// ---------------------------------------------------------------------------
+// resolveUpdateState
+// ---------------------------------------------------------------------------
+
+test('resolveUpdateState: registry unreachable', () => {
+  assert.deepEqual(resolveUpdateState({ latest: null, cached: '0.1.0-rc.6', pinned: null }), { kind: 'unknown' })
+})
+
+test('resolveUpdateState: nothing cached or pinned means nothing to act on', () => {
+  assert.deepEqual(resolveUpdateState({ latest: '0.1.0-rc.6', cached: null, pinned: null }), {
+    kind: 'up-to-date',
+    latest: '0.1.0-rc.6',
+  })
+})
+
+test('resolveUpdateState: cached version is current', () => {
+  assert.deepEqual(resolveUpdateState({ latest: '0.1.0-rc.6', cached: '0.1.0-rc.6', pinned: null }), {
+    kind: 'up-to-date',
+    latest: '0.1.0-rc.6',
+    current: '0.1.0-rc.6',
+  })
+})
+
+test('resolveUpdateState: newer version is available', () => {
+  assert.deepEqual(resolveUpdateState({ latest: '0.2.0', cached: '0.1.0-rc.6', pinned: null }), {
+    kind: 'update-available',
+    latest: '0.2.0',
+    current: '0.1.0-rc.6',
+  })
+})
+
+test('resolveUpdateState: pinned version beats the cache for comparison', () => {
+  // cached is old but a newer version is pinned — effectively up to date
+  assert.deepEqual(resolveUpdateState({ latest: '0.1.0-rc.6', cached: '0.1.0-rc.5', pinned: '0.1.0-rc.6' }), {
+    kind: 'up-to-date',
+    latest: '0.1.0-rc.6',
+    current: '0.1.0-rc.6',
+  })
+})
+
+test('resolveUpdateState: pinned version older than latest reports pinned-older', () => {
+  assert.deepEqual(resolveUpdateState({ latest: '0.2.0', cached: '0.2.0', pinned: '0.1.0-rc.6' }), {
+    kind: 'pinned-older',
+    latest: '0.2.0',
+    current: '0.1.0-rc.6',
+  })
 })

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import fs from 'node:fs'
+import http from 'node:http'
 import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
@@ -11,6 +12,8 @@ import {
   resolveCommandPath,
   probePort,
   waitForPort,
+  probeHarness,
+  waitForHarness,
   DEFAULT_PORT,
   DEFAULT_STARTUP_TIMEOUT_MS,
 } from '../src/dsh-service.js'
@@ -155,4 +158,82 @@ test('waitForPort resolves true once a server appears', async () => {
 
 test('waitForPort times out on a closed port', async () => {
   assert.equal(await waitForPort(1, 300, 50), false)
+})
+
+// ---------------------------------------------------------------------------
+// probeHarness / waitForHarness (HTTP health check)
+// ---------------------------------------------------------------------------
+
+function startHttpServer(handler) {
+  const server = http.createServer(handler)
+  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port })))
+}
+
+test('probeHarness accepts a response carrying the __DSH_BOOT__ marker', async () => {
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' })
+    res.end('<!doctype html><script>window.__DSH_BOOT__ = {"rev":"abc"}</script>')
+  })
+  try {
+    assert.deepEqual(await probeHarness(port, 1000), { ok: true, reason: 'harness' })
+  } finally {
+    server.close()
+  }
+})
+
+test('probeHarness rejects foreign services that answer without the marker', async () => {
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    res.end('hello from some other local service')
+  })
+  try {
+    assert.deepEqual(await probeHarness(port, 1000), { ok: false, reason: 'not-harness' })
+  } finally {
+    server.close()
+  }
+})
+
+test('probeHarness reports http-error for non-2xx answers', async () => {
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(503)
+    res.end('down')
+  })
+  try {
+    assert.deepEqual(await probeHarness(port, 1000), { ok: false, reason: 'http-error' })
+  } finally {
+    server.close()
+  }
+})
+
+test('probeHarness reports no-listener on a closed port', async () => {
+  assert.deepEqual(await probeHarness(1, 1000), { ok: false, reason: 'no-listener' })
+})
+
+test('waitForHarness resolves once the Harness marker appears', async () => {
+  let harness = false
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(200)
+    res.end(harness ? '<script>window.__DSH_BOOT__ = {}</script>' : 'starting…')
+  })
+  try {
+    const waiting = waitForHarness(port, 2000, 50)
+    setTimeout(() => {
+      harness = true
+    }, 120)
+    assert.equal(await waiting, true)
+  } finally {
+    server.close()
+  }
+})
+
+test('waitForHarness times out when only a foreign service answers', async () => {
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(200)
+    res.end('not harness')
+  })
+  try {
+    assert.equal(await waitForHarness(port, 300, 50), false)
+  } finally {
+    server.close()
+  }
 })

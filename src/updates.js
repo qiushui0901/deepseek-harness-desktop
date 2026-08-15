@@ -115,3 +115,37 @@ export async function fetchLatestDshVersion({
     return null // offline or registry hiccup — never block the app on this
   }
 }
+
+// ---------------------------------------------------------------------------
+// Update state — how the shell should present the check result
+// ---------------------------------------------------------------------------
+
+/**
+ * Decide what the update check means, given the latest published version, the
+ * version cached by npx (what is actually running), and an optional pinned
+ * version from the config.
+ *
+ * Returns:
+ *   { kind: 'unknown' }                       — registry unreachable
+ *   { kind: 'up-to-date', latest, current? }  — nothing newer to fetch
+ *   { kind: 'update-available', latest, current } — restart backend to update
+ *   { kind: 'pinned-older', latest, current } — a version is pinned and the
+ *                                               registry is newer: restarting
+ *                                               would change nothing
+ */
+export function resolveUpdateState({ latest, cached, pinned }) {
+  if (!latest) return { kind: 'unknown' }
+  const effective = pinned ?? cached ?? null
+  if (!effective) {
+    // Nothing cached and nothing pinned: npx will simply fetch the latest on
+    // the next backend start, so there is nothing to act on.
+    return { kind: 'up-to-date', latest }
+  }
+  if (pinned && compareVersions(latest, effective) > 0) {
+    return { kind: 'pinned-older', latest, current: effective }
+  }
+  if (compareVersions(latest, effective) <= 0) {
+    return { kind: 'up-to-date', latest, current: effective }
+  }
+  return { kind: 'update-available', latest, current: effective }
+}
