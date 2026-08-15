@@ -57,6 +57,11 @@ process.on('unhandledRejection', (reason) => {
 
 function onBackendSpawnError(err) {
   console.error('[dsh-desktop] backend spawn error:', err)
+  if (process.argv.includes('--smoke')) {
+    console.error('[dsh-desktop] smoke: backend spawn failed')
+    app.exit(1)
+    return
+  }
   const win = getMainWindow()
   if (!quitting && win && !win.isDestroyed()) {
     loadErrorPage(win, {
@@ -118,6 +123,11 @@ async function startBackend() {
   }
   const ok = await waitForHarness(cfg.port, cfg.startupTimeoutMs)
   if (!ok && !quitting) {
+    if (process.argv.includes('--smoke')) {
+      console.error(`[dsh-desktop] smoke: backend not ready on port ${cfg.port} within ${cfg.startupTimeoutMs}ms`)
+      app.exit(1)
+      return false
+    }
     loadErrorPage(getMainWindow(), {
       appTitle: APP_TITLE,
       title: '后端服务未能启动',
@@ -165,14 +175,6 @@ function loadApp() {
   // registry quietly after the UI settles and notify if a newer version exists.
   if (cfg.updateNotifications && !process.argv.includes('--smoke')) {
     setTimeout(() => checkForUpdates({ manual: false }), 4000)
-  }
-  if (process.argv.includes('--smoke')) {
-    win.webContents.once('did-finish-load', () => {
-      console.log('[dsh-desktop] SMOKE_OK', win.webContents.getURL())
-      quitting = true
-      stopBackend(backend?.proc) // deterministic cleanup for smoke runs
-      app.exit(0) // force exit: skips any page-level close interception
-    })
   }
 }
 
@@ -314,7 +316,18 @@ if (!gotLock) {
     buildMenu()
     createAppWindow()
     const smoke = process.argv.includes('--smoke')
-    if (smoke) console.log('[dsh-desktop] smoke: window created, probing', cfg.port)
+    if (smoke) {
+      // Attach early: any successful page load (app UI or error page) settles
+      // the smoke run; failure paths below exit(1) explicitly instead.
+      const win = getMainWindow()
+      win.webContents.once('did-finish-load', () => {
+        console.log('[dsh-desktop] SMOKE_OK', win.webContents.getURL())
+        quitting = true
+        stopBackend(backend?.proc) // deterministic cleanup for smoke runs
+        app.exit(0) // force exit: skips any page-level close interception
+      })
+      console.log('[dsh-desktop] smoke: window created, probing', cfg.port)
+    }
 
     // Attach to an already-running instance — but only if the HTTP response
     // proves it is actually the Harness Web UI (not just any TCP listener).
@@ -325,6 +338,11 @@ if (!gotLock) {
       return
     }
     if (probe.reason !== 'no-listener') {
+      if (process.argv.includes('--smoke')) {
+        console.error('[dsh-desktop] smoke: port occupied by a non-Harness service:', JSON.stringify(probe))
+        app.exit(1)
+        return
+      }
       loadErrorPage(getMainWindow(), {
         appTitle: APP_TITLE,
         title: '端口被其他服务占用',
