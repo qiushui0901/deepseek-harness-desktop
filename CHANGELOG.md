@@ -3,6 +3,11 @@
 ## 0.1.4 (unreleased)
 
 - Fixed: 冒烟测试假阳性——`did-finish-load` 提前挂载后，启动页（file:）先触发导致后端未就绪就"通过"（v0.1.3 的 CI 四平台全为假阳性）；现在只接受 Harness 应用 URL（`http://127.0.0.1:<port>`），启动页跳过、其他页面直接失败。
+- Fixed: 就绪探测只做一次 HTTP 身份检查——后端先回启动页/503 时永久错过就绪（P1）；改为每 ~3 秒重复一次带硬超时的身份检查（TCP 每 tick 探测，HTTP 检查由 2s 竞速包裹，防止 Windows 上 fetch 悬挂）。
+- Fixed: 更新/崩溃重启竞态（P1）——`stopBackend` 现在返回等待进程真正退出的 Promise；重启前先等旧进程退出并释放端口，`backendStopping` 标记压制"预期退出"被误判为崩溃弹窗/重复启动。
+- Fixed: 服务端重定向绕过导航限制（P2）——`will-redirect` 复用同源策略拦截 302 跳转；`probeHarness` 探测请求设置 `redirect: 'manual'`，本地非 Harness 服务无法用重定向到含 `__DSH_BOOT__` 的外部页面冒充。
+- Changed: CI Windows/Linux 冒烟前新增 `scripts/prewarm-backend.mjs`——先把后端起起来跑就绪再杀掉（预热 npx 缓存 + Defender 文件缓存，Windows 冷启动可达 10+ 分钟）；冒烟超时放宽至 25 分钟。
+- Added: 单元测试 2 个（持续身份检查回归、302 重定向不通过），共 47 个。
 
 ## 0.1.3 (2026-08-15)
 

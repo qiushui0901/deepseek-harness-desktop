@@ -22,14 +22,17 @@ export function createMainWindow(options, { splashFile, onFailLoad, allowedOrigi
     return { action: 'deny' }
   })
   if (allowedOrigin) {
-    // will-navigate fires for page-initiated navigations (links, location
-    // changes); our own loadURL calls are not affected. Redirect the main
-    // window to the system browser on any cross-origin attempt.
-    mainWindow.webContents.on('will-navigate', (event, url) => {
+    const redirectOutside = (event, url) => {
       if (shouldAllowNavigation(url, allowedOrigin)) return
       event.preventDefault()
       if (url.startsWith('http://') || url.startsWith('https://')) shell.openExternal(url)
-    })
+    }
+    // will-navigate fires for page-initiated navigations (links, location
+    // changes); our own loadURL calls are not affected.
+    mainWindow.webContents.on('will-navigate', redirectOutside)
+    // will-redirect fires on server-side redirects (e.g. a 302 from the local
+    // page to an external site) — same policy applies.
+    mainWindow.webContents.on('will-redirect', redirectOutside)
   }
   if (onFailLoad) {
     mainWindow.webContents.on('did-fail-load', onFailLoad)

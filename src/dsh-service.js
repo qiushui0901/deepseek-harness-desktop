@@ -112,7 +112,12 @@ export function withTimeout(promise, ms) {
  */
 export async function probeHarness(port, timeoutMs = PROBE_TIMEOUT_MS) {
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(timeoutMs) })
+    // redirect: 'manual' — a foreign local service could 302 a probe to an
+    // external page that happens to contain the __DSH_BOOT__ string.
+    const res = await fetch(`http://127.0.0.1:${port}/`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'manual',
+    })
     if (!res.ok) return { ok: false, reason: 'http-error' }
     const body = await res.text()
     return body.includes('__DSH_BOOT__') ? { ok: true, reason: 'harness' } : { ok: false, reason: 'not-harness' }
@@ -131,26 +136,26 @@ export async function probeHarness(port, timeoutMs = PROBE_TIMEOUT_MS) {
 
 /**
  * Wait for the Harness backend to become ready. Polls with a plain TCP probe
- * (net.connect is bulletproof everywhere) and runs the HTTP identity check
- * exactly once, right after the port becomes reachable — undici `fetch` has
+ * (net.connect is bulletproof everywhere) and re-runs the HTTP identity check
+ * on an interval (every 6 ticks ≈ 3s) while the port is up — the backend may
+ * answer 503/startup pages before it is ready, so the check must be repeated,
+ * not run once. Every HTTP check is bounded by a 2s race: undici `fetch` has
  * been observed to hang indefinitely on some Windows runners, so it must
- * never sit inside a polling loop. `onTick` fires on every poll for progress
- * logging (smoke runs).
+ * never sit unguarded in a polling loop. `onTick` fires on every poll for
+ * progress logging (smoke runs).
  */
 export function waitForHarness(port, timeoutMs, intervalMs = POLL_INTERVAL_MS, onTick) {
   const start = Date.now()
-  let checked = false
+  let polls = 0
   return new Promise((resolve) => {
     const tick = async () => {
       const up = await probePort(port)
-      if (up && !checked) {
-        checked = true
+      if (up && polls % 6 === 0) {
         const probe = await withTimeout(probeHarness(port), 2000).catch(() => ({ ok: false, reason: 'probe-error' }))
         if (probe.ok) return resolve(true)
-        // Listener is up but not (yet) Harness — keep polling; no more HTTP
-        // checks while it stays up.
       }
       onTick?.()
+      polls++
       if (Date.now() - start > timeoutMs) return resolve(false)
       setTimeout(tick, intervalMs)
     }
@@ -260,25 +265,36 @@ export function spawnBackend(cfg, { command = resolveCommand(cfg.command), pathE
   return proc
 }
 
+/**
+ * Stop the backend and resolve once the process has actually exited — so a
+ * replacement backend can bind the port without racing the old one. The
+ * `exit` event settles the promise; a safety net resolves after 8s no matter
+ * what (callers must not hang on a zombie).
+ */
 export function stopBackend(proc, platform = process.platform) {
-  if (!proc || proc.killed) return
-  if (platform === 'win32') {
-    // Kill the whole process tree (npx -> dsh); plain proc.kill() would orphan
-    // the grandchild on Windows.
-    try {
-      const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' })
-      killer.on('error', () => proc.kill())
-    } catch {
-      proc.kill()
+  if (!proc) return Promise.resolve()
+  if (proc.exitCode !== null || proc.signalCode !== null) return Promise.resolve() // already gone
+  return new Promise((resolve) => {
+    const done = () => resolve()
+    proc.once('exit', done)
+    if (platform === 'win32') {
+      // Kill the whole process tree (npx -> dsh); plain proc.kill() would orphan
+      // the grandchild on Windows.
+      try {
+        const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' })
+        killer.on('error', () => proc.kill())
+      } catch {
+        proc.kill()
+      }
+      setTimeout(done, 8000).unref() // taskkill /F normally exits it immediately
+    } else {
+      proc.kill('SIGTERM')
+      // `proc.killed` only means the signal was *sent*, not that the process
+      // exited — so escalate to SIGKILL based on the exit state instead.
+      const timer = setTimeout(() => {
+        if (proc.exitCode === null && proc.signalCode === null) proc.kill('SIGKILL')
+      }, 3000)
+      timer.unref()
     }
-  } else {
-    proc.kill('SIGTERM')
-    // `proc.killed` only means the signal was *sent*, not that the process
-    // exited — so escalate to SIGKILL based on the exit state instead.
-    const timer = setTimeout(() => {
-      if (proc.exitCode === null && proc.signalCode === null) proc.kill('SIGKILL')
-    }, 3000)
-    timer.unref()
-    proc.once('exit', () => clearTimeout(timer))
-  }
+  })
 }

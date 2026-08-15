@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PRODUCT = 'DeepSeek Harness Desktop'
-const TIMEOUT_MS = 900_000 // cold npx installs of the dsh tree can take a while
-const STARTUP_TIMEOUT_MS = 480_000
+const TIMEOUT_MS = 1_500_000 // generous: prewarm normally makes this fast
+const STARTUP_TIMEOUT_MS = 600_000
 
 function defaultAppPath() {
   if (process.platform === 'win32') {

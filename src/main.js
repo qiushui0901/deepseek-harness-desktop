@@ -40,6 +40,7 @@ const APP_URL = () => `http://127.0.0.1:${cfg.port}`
 
 let cfg = null
 let backend = null // { proc, spawnedByUs }
+let backendStopping = false // expected shutdown: suppress crash dialog/restart
 let quitting = false
 
 // Surface silent failures: log anything uncaught instead of hanging or dying
@@ -78,7 +79,7 @@ function onBackendSpawnError(err) {
 }
 
 function onBackendExit(code, signal) {
-  if (quitting) return
+  if (quitting || backendStopping) return
   if (process.argv.includes('--smoke')) {
     // Never block CI smoke runs on a modal dialog.
     console.error(`[dsh-desktop] backend exited during smoke (code=${code}, signal=${signal})`)
@@ -96,10 +97,13 @@ function onBackendExit(code, signal) {
       cancelId: 1,
     })
     if (choice === 0) {
+      // The old process is already gone (this is its exit event) — mark the
+      // stop as expected so any late exit callbacks stay quiet, then restart
+      // and reload the page explicitly.
+      backendStopping = true
       backend = null
-      // Wait for the new backend and explicitly reload the page instead of
-      // hoping the old page reconnects on its own.
       startBackend().then((ok) => {
+        backendStopping = false
         if (ok && !quitting && !win.isDestroyed()) win.loadURL(APP_URL())
       })
     } else {
@@ -254,7 +258,13 @@ async function checkForUpdates({ manual = false }) {
     cancelId: 1,
   })
   if (choice === 0 && backend?.spawnedByUs) {
-    stopBackend(backend.proc)
+    // Wait for the old process to fully exit and the port to be released
+    // before starting the replacement — otherwise the new backend can fail
+    // to bind (EADDRINUSE) and the old exit event could be mistaken for a
+    // crash (dialog + extra restart).
+    backendStopping = true
+    await stopBackend(backend.proc)
+    backendStopping = false
     backend = null
     const ok = await startBackend()
     if (ok && !quitting) win.loadURL(APP_URL())

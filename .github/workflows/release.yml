@@ -54,10 +54,10 @@ jobs:
       - run: npm run dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      # Cold npx installs of the dsh tree are very slow on Windows runners
-      # (Defender scans every file); pre-warm the cache so the packaged app's
-      # backend spawn is instant.
-      - run: npx --yes @deepseek-ai/dsh --version
+      # Cold npx installs AND first execution of the dsh tree are very slow on
+      # Windows runners (Defender scans every file); pre-warm both so the
+      # packaged app's backend spawn is instant.
+      - run: node scripts/prewarm-backend.mjs
       - run: npm run smoke:packaged
       - uses: actions/upload-artifact@v4
         with:
@@ -80,7 +80,7 @@ jobs:
       - run: npm run dist:linux
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - run: npx --yes @deepseek-ai/dsh --version
+      - run: node scripts/prewarm-backend.mjs
       - run: xvfb-run -a npm run smoke:packaged
       - uses: actions/upload-artifact@v4
         with:
