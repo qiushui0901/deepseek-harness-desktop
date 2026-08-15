@@ -18,13 +18,21 @@ if (!resolved) {
   console.error('prewarm: npx not found in PATH or common install locations')
   process.exit(1)
 }
-const child = spawn(resolved.command, ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(PORT)], {
-  stdio: 'ignore',
-  env: {
-    ...process.env,
-    ...(resolved.pathEnv ? { PATH: [resolved.pathEnv, process.env.PATH].filter(Boolean).join(process.platform === 'win32' ? ';' : ':') } : {}),
-  },
-})
+let child
+try {
+  child = spawn(resolved.command, ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(PORT)], {
+    shell: process.platform === 'win32',
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      ...(resolved.pathEnv ? { PATH: [resolved.pathEnv, process.env.PATH].filter(Boolean).join(process.platform === 'win32' ? ';' : ':') } : {}),
+    },
+  })
+} catch (err) {
+  console.error('prewarm: spawn failed:', err.message)
+  process.exit(1)
+}
 
 function withTimeout(promise, ms) {
   let timer

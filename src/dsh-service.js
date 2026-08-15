@@ -244,8 +244,12 @@ export function resolveCommandPath(cmd, { platform = process.platform, pathEnv =
 
 export function spawnBackend(cfg, { command = resolveCommand(cfg.command), pathEnv = null, logPath, onSpawnError, onExit }) {
   const log = fs.createWriteStream(logPath, { flags: 'a' })
+  // shell: true on Windows: Node cannot spawn .cmd/.bat shims directly in
+  // some configurations (spawn EINVAL); cmd.exe /d /s /c is universal.
   const proc = spawn(command, cfg.args, {
     cwd: cfg.cwd,
+    shell: process.platform === 'win32',
+    windowsHide: true,
     env: {
       ...process.env,
       ...(pathEnv ? { PATH: [pathEnv, process.env.PATH].filter(Boolean).join(path.delimiter) } : {}),
