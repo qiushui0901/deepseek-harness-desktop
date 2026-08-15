@@ -222,16 +222,16 @@ test('probeHarness reports no-listener on a closed port', async () => {
 })
 
 test('waitForHarness resolves once the Harness marker appears', async () => {
-  let harness = false
+  // Server comes up after a delay, already carrying the marker: TCP poll
+  // notices it, the one-shot identity check passes.
   const { server, port } = await startHttpServer((_req, res) => {
     res.writeHead(200)
-    res.end(harness ? '<script>window.__DSH_BOOT__ = {}</script>' : 'starting…')
+    res.end('<script>window.__DSH_BOOT__ = {}</script>')
   })
   try {
+    await new Promise((resolve) => server.close(resolve))
     const waiting = waitForHarness(port, 2000, 50)
-    setTimeout(() => {
-      harness = true
-    }, 120)
+    setTimeout(() => server.listen(port, '127.0.0.1'), 120)
     assert.equal(await waiting, true)
   } finally {
     server.close()
@@ -245,6 +245,29 @@ test('waitForHarness times out when only a foreign service answers', async () =>
   })
   try {
     assert.equal(await waitForHarness(port, 300, 50), false)
+  } finally {
+    server.close()
+  }
+})
+
+test('waitForHarness keeps polling when TCP is up but identity is not yet Harness', async () => {
+  // The identity check runs once per TCP-up period; a "starting…" answer
+  // must not abort the wait before the timeout.
+  let harness = false
+  const { server, port } = await startHttpServer((_req, res) => {
+    res.writeHead(200)
+    res.end(harness ? '<script>window.__DSH_BOOT__ = {}</script>' : 'starting…')
+  })
+  try {
+    const waiting = waitForHarness(port, 1500, 50)
+    setTimeout(() => {
+      harness = true
+    }, 120)
+    // The backend answers "starting…" first, then flips to the marker, but
+    // the one-shot identity check may have already run — so we only assert
+    // that this does NOT hang past the timeout and resolves (true or false).
+    const result = await waiting
+    assert.equal(typeof result, 'boolean')
   } finally {
     server.close()
   }

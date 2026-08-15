@@ -28,6 +28,7 @@ import {
   spawnBackend,
   stopBackend,
   resolveCommandPath,
+  withTimeout,
   backendLogPath,
 } from './dsh-service.js'
 import { loadErrorPage } from './error-page.js'
@@ -121,7 +122,12 @@ async function startBackend() {
     }),
     spawnedByUs: true,
   }
-  const ok = await waitForHarness(cfg.port, cfg.startupTimeoutMs)
+  let polls = 0
+  const ok = await waitForHarness(cfg.port, cfg.startupTimeoutMs, undefined, () => {
+    if (process.argv.includes('--smoke') && ++polls % 60 === 0) {
+      console.log(`[dsh-desktop] smoke: still waiting for backend (${Math.round((polls * 500) / 1000)}s)`)
+    }
+  })
   if (!ok && !quitting) {
     if (process.argv.includes('--smoke')) {
       console.error(`[dsh-desktop] smoke: backend not ready on port ${cfg.port} within ${cfg.startupTimeoutMs}ms`)
@@ -338,7 +344,8 @@ if (!gotLock) {
 
     // Attach to an already-running instance — but only if the HTTP response
     // proves it is actually the Harness Web UI (not just any TCP listener).
-    const probe = await probeHarness(cfg.port)
+    // Bounded by withTimeout: a hung fetch must never stall startup.
+    const probe = await withTimeout(probeHarness(cfg.port), 3000).catch(() => ({ ok: false, reason: 'error' }))
     if (smoke) console.log('[dsh-desktop] smoke: probe =', JSON.stringify(probe))
     if (probe.ok) {
       loadApp()

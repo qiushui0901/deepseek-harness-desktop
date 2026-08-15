@@ -91,6 +91,16 @@ export function waitForPort(port, timeoutMs, intervalMs = POLL_INTERVAL_MS) {
   })
 }
 
+export function withTimeout(promise, ms) {
+  let timer
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timeout')), ms)
+    }),
+  ]).finally(() => clearTimeout(timer))
+}
+
 /**
  * HTTP health check that identifies the DeepSeek Harness Web UI by its
  * characteristic `__DSH_BOOT__` marker, instead of treating any TCP listener
@@ -119,12 +129,28 @@ export async function probeHarness(port, timeoutMs = PROBE_TIMEOUT_MS) {
   }
 }
 
-export function waitForHarness(port, timeoutMs, intervalMs = POLL_INTERVAL_MS) {
+/**
+ * Wait for the Harness backend to become ready. Polls with a plain TCP probe
+ * (net.connect is bulletproof everywhere) and runs the HTTP identity check
+ * exactly once, right after the port becomes reachable — undici `fetch` has
+ * been observed to hang indefinitely on some Windows runners, so it must
+ * never sit inside a polling loop. `onTick` fires on every poll for progress
+ * logging (smoke runs).
+ */
+export function waitForHarness(port, timeoutMs, intervalMs = POLL_INTERVAL_MS, onTick) {
   const start = Date.now()
+  let checked = false
   return new Promise((resolve) => {
     const tick = async () => {
-      const probe = await probeHarness(port)
-      if (probe.ok) return resolve(true)
+      const up = await probePort(port)
+      if (up && !checked) {
+        checked = true
+        const probe = await withTimeout(probeHarness(port), 2000).catch(() => ({ ok: false, reason: 'probe-error' }))
+        if (probe.ok) return resolve(true)
+        // Listener is up but not (yet) Harness — keep polling; no more HTTP
+        // checks while it stays up.
+      }
+      onTick?.()
       if (Date.now() - start > timeoutMs) return resolve(false)
       setTimeout(tick, intervalMs)
     }

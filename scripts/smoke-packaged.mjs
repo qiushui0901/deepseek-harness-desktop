@@ -44,6 +44,8 @@ child.stderr.on('data', (chunk) => {
 
 const timeout = setTimeout(() => {
   console.error(`packaged smoke timed out after ${TIMEOUT_MS / 1000}s`)
+  const tail = output.split('\n').slice(-30).join('\n')
+  console.error('--- last app output ---\n' + tail + '\n------------------------')
   child.kill('SIGKILL')
   process.exit(1)
 }, TIMEOUT_MS)
