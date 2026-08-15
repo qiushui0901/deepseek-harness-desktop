@@ -33,12 +33,12 @@ DeepSeek Harness Desktop 把官方 DeepSeek Harness Web 体验封装成独立桌
 
 | 平台 | 架构 | 包 | 下载 |
 | --- | --- | --- | --- |
-| macOS | Apple Silicon | DMG | [Apple Silicon 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-arm64.dmg) |
-| macOS | Intel | DMG | [Intel Mac 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-x64.dmg) |
-| Windows | x64 | 安装程序 | [Windows 安装版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-windows-x64.exe) |
-| Windows | x64 | 绿色 ZIP | [Windows 绿色版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-windows-x64.zip) |
-| Linux | x64 | AppImage | [AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-linux-x86_64.AppImage) |
-| Debian / Ubuntu | x64 | deb | [deb 包](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.3-linux-amd64.deb) |
+| macOS | Apple Silicon | DMG | [Apple Silicon 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-arm64.dmg) |
+| macOS | Intel | DMG | [Intel Mac 版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-x64.dmg) |
+| Windows | x64 | 安装程序 | [Windows 安装版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-windows-x64.exe) |
+| Windows | x64 | 绿色 ZIP | [Windows 绿色版](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-windows-x64.zip) |
+| Linux | x64 | AppImage | [AppImage](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-linux-x86_64.AppImage) |
+| Debian / Ubuntu | x64 | deb | [deb 包](https://github.com/qiushui0901/deepseek-harness-desktop/releases/latest/download/DeepSeek-Harness-Desktop-0.1.4-linux-amd64.deb) |
 
 全部历史版本见 [GitHub Releases 页面](https://github.com/qiushui0901/deepseek-harness-desktop/releases)。
 
@@ -125,7 +125,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
   "autoStart": true,
   "shutdownOnQuit": true,
   "updateNotifications": true,
-  "dshVersion": "0.1.3-rc.6",
+  "dshVersion": "0.1.4-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -137,7 +137,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `autoStart` | 端口无监听时自动启动后端（默认 `true`） |
 | `shutdownOnQuit` | 退出时停止由本应用启动的后端（默认 `true`） |
 | `updateNotifications` | 启动后自动检查 npm 最新版并提示（默认 `true`） |
-| `dshVersion` | 固定后端版本（如 `0.1.3-rc.6`）；不设置则始终跟随最新版 |
+| `dshVersion` | 固定后端版本（如 `0.1.4-rc.6`）；不设置则始终跟随最新版 |
 | `startupTimeoutMs` | 就绪等待超时，超时后显示错误页 |
 
 环境变量优先级高于配置文件：

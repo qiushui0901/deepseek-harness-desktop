@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 (unreleased)
+
+- Fixed: 冒烟测试假阳性——`did-finish-load` 提前挂载后，启动页（file:）先触发导致后端未就绪就"通过"（v0.1.3 的 CI 四平台全为假阳性）；现在只接受 Harness 应用 URL（`http://127.0.0.1:<port>`），启动页跳过、其他页面直接失败。
+
 ## 0.1.3 (2026-08-15)
 
 - Fixed: Windows 后端启动 ENOENT——Node 在 Windows 上同时安装 `npx`（无扩展名 POSIX 脚本）、`npx.cmd`、`npx.exe`，命令解析优先匹配到了无法直接 spawn 的无扩展名文件；win32 上现在只查找 `.exe` → `.cmd`。这是 Windows 打包冒烟失败的根因（此前误判为 runner 慢）。

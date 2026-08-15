@@ -317,11 +317,18 @@ if (!gotLock) {
     createAppWindow()
     const smoke = process.argv.includes('--smoke')
     if (smoke) {
-      // Attach early: any successful page load (app UI or error page) settles
-      // the smoke run; failure paths below exit(1) explicitly instead.
+      // Attach early, but only accept the Harness app URL as success: the
+      // splash (file:) and error pages (data:) must never settle the run.
       const win = getMainWindow()
-      win.webContents.once('did-finish-load', () => {
-        console.log('[dsh-desktop] SMOKE_OK', win.webContents.getURL())
+      win.webContents.on('did-finish-load', () => {
+        const url = win.webContents.getURL()
+        if (!url.startsWith(`http://127.0.0.1:${cfg.port}`)) {
+          if (url.startsWith('file:')) return // splash — keep waiting
+          console.error('[dsh-desktop] smoke: unexpected page loaded:', url)
+          app.exit(1)
+          return
+        }
+        console.log('[dsh-desktop] SMOKE_OK', url)
         quitting = true
         stopBackend(backend?.proc) // deterministic cleanup for smoke runs
         app.exit(0) // force exit: skips any page-level close interception
