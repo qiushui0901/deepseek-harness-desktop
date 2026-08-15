@@ -188,7 +188,10 @@ function commonBinDirs(platform, home, env) {
  */
 export function resolveCommandPath(cmd, { platform = process.platform, pathEnv = process.env.PATH, home = os.homedir(), env = process.env } = {}) {
   if (path.isAbsolute(cmd)) return { command: cmd, pathEnv: null }
-  const names = platform === 'win32' ? [cmd, `${cmd}.cmd`, `${cmd}.exe`] : [cmd]
+  // On win32, never pick an extensionless file: Node ships `npx` (a POSIX sh
+  // script), `npx.cmd` and `npx.exe` side by side, and only the latter two can
+  // be spawned directly. Prefer .exe, then .cmd.
+  const names = platform === 'win32' ? [`${cmd}.exe`, `${cmd}.cmd`] : [cmd]
   const dirs = [...(pathEnv || '').split(path.delimiter).filter(Boolean), ...commonBinDirs(platform, home, env)]
   const seen = new Set()
   for (const dir of dirs) {

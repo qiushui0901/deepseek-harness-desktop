@@ -133,6 +133,18 @@ test('resolveCommandPath finds .cmd shims on win32', () => {
   assert.equal(resolved.command, path.join(dir, 'npx.cmd'))
 })
 
+test('resolveCommandPath on win32 never picks the bare extensionless file', () => {
+  // Node on Windows ships `npx`, `npx.cmd` and `npx.exe` side by side; the
+  // bare script cannot be spawned directly and must not win the search.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-win-'))
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'npx'), '#!/bin/sh\n')
+  fs.writeFileSync(path.join(dir, 'npx.cmd'), '@echo off\r\n')
+  fs.writeFileSync(path.join(dir, 'npx.exe'), 'MZ')
+  const resolved = resolveCommandPath('npx', { platform: 'win32', pathEnv: dir })
+  assert.equal(resolved.command, path.join(dir, 'npx.exe'))
+})
+
 test('probePort reports a listening local server and a closed port', async () => {
   const server = net.createServer()
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
