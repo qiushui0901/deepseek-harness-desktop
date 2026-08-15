@@ -6,13 +6,24 @@
 // packaged-app spawn reuses warm caches and starts in seconds.
 import { spawn } from 'node:child_process'
 import process from 'node:process'
+import { resolveCommandPath } from '../src/dsh-service.js'
 
 const PORT = Number(process.env.PREWARM_PORT ?? 39999)
 const READY_TIMEOUT_MS = 600_000
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
-const child = spawn(npx, ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(PORT)], {
+// Resolve npx to an absolute path: bare `.cmd` names can fail spawn with
+// EINVAL on some Windows setups, while full paths are reliable.
+const resolved = resolveCommandPath('npx', { platform: process.platform })
+if (!resolved) {
+  console.error('prewarm: npx not found in PATH or common install locations')
+  process.exit(1)
+}
+const child = spawn(resolved.command, ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(PORT)], {
   stdio: 'ignore',
+  env: {
+    ...process.env,
+    ...(resolved.pathEnv ? { PATH: [resolved.pathEnv, process.env.PATH].filter(Boolean).join(process.platform === 'win32' ? ';' : ':') } : {}),
+  },
 })
 
 function withTimeout(promise, ms) {
