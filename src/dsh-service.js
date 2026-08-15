@@ -54,6 +54,7 @@ export function loadConfig({ userDataDir, env = process.env, overrides = {} } = 
     autoStart: file.autoStart !== false,
     shutdownOnQuit: file.shutdownOnQuit !== false,
     updateNotifications: file.updateNotifications !== false,
+    idleReloadMinutes: Number(env.DSH_DESKTOP_IDLE_RELOAD_MINUTES ?? file.idleReloadMinutes ?? 30),
     dshVersion,
     startupTimeoutMs: Number(
       env.DSH_DESKTOP_STARTUP_TIMEOUT_MS ?? file.startupTimeoutMs ?? overrides.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS,

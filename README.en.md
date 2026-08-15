@@ -134,7 +134,8 @@ keys have defaults:
   "autoStart": true,
   "shutdownOnQuit": true,
   "updateNotifications": true,
-  "dshVersion": "0.1.4-rc.6",
+  "idleReloadMinutes": 30,
+  "dshVersion": "0.1.0-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -146,7 +147,8 @@ keys have defaults:
 | `autoStart` | Start the backend when nothing listens (default `true`) |
 | `shutdownOnQuit` | Stop the backend the app started when quitting (default `true`) |
 | `updateNotifications` | Auto-check the npm registry after startup and notify (default `true`) |
-| `dshVersion` | Pin the backend version (e.g. `0.1.4-rc.6`); unset = always follow the latest |
+| `idleReloadMinutes` | Reload the page after this many minutes of system idle to refresh the event connection (`0` disables, default `30`) |
+| `dshVersion` | Pin the backend version (e.g. `0.1.0-rc.6`); unset = always follow the latest |
 | `startupTimeoutMs` | How long to wait for readiness before showing an error |
 
 Environment variables override the file:
@@ -158,6 +160,7 @@ Environment variables override the file:
 | `DSH_DESKTOP_ARGS` | `args` (space-separated string) |
 | `DSH_DESKTOP_CWD` | `cwd` |
 | `DSH_DESKTOP_DSH_VERSION` | `dshVersion` |
+| `DSH_DESKTOP_IDLE_RELOAD_MINUTES` | `idleReloadMinutes` |
 | `DSH_DESKTOP_STARTUP_TIMEOUT_MS` | `startupTimeoutMs` |
 
 ## Security model

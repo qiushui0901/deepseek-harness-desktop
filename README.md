@@ -125,7 +125,8 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
   "autoStart": true,
   "shutdownOnQuit": true,
   "updateNotifications": true,
-  "dshVersion": "0.1.4-rc.6",
+  "idleReloadMinutes": 30,
+  "dshVersion": "0.1.0-rc.6",
   "startupTimeoutMs": 180000
 }
 ```
@@ -137,7 +138,8 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `autoStart` | 端口无监听时自动启动后端（默认 `true`） |
 | `shutdownOnQuit` | 退出时停止由本应用启动的后端（默认 `true`） |
 | `updateNotifications` | 启动后自动检查 npm 最新版并提示（默认 `true`） |
-| `dshVersion` | 固定后端版本（如 `0.1.4-rc.6`）；不设置则始终跟随最新版 |
+| `idleReloadMinutes` | 系统空闲超过该分钟数后自动重载页面（刷新事件连接；`0` 关闭，默认 `30`） |
+| `dshVersion` | 固定后端版本（如 `0.1.0-rc.6`）；不设置则始终跟随最新版 |
 | `startupTimeoutMs` | 就绪等待超时，超时后显示错误页 |
 
 环境变量优先级高于配置文件：
@@ -149,6 +151,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `DSH_DESKTOP_ARGS` | `args`（空格分隔字符串） |
 | `DSH_DESKTOP_CWD` | `cwd` |
 | `DSH_DESKTOP_DSH_VERSION` | `dshVersion` |
+| `DSH_DESKTOP_IDLE_RELOAD_MINUTES` | `idleReloadMinutes` |
 | `DSH_DESKTOP_STARTUP_TIMEOUT_MS` | `startupTimeoutMs` |
 
 ## 安全模型

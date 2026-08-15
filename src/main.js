@@ -16,7 +16,7 @@
  * prints SMOKE_OK (used to verify the shell end to end on CI).
  */
 
-import { app, Menu, dialog, shell } from 'electron'
+import { app, Menu, dialog, shell, powerMonitor } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createMainWindow, getMainWindow, focusMainWindow } from './window-lifecycle.js'
@@ -42,6 +42,8 @@ let cfg = null
 let backend = null // { proc, spawnedByUs }
 let backendStopping = false // expected shutdown: suppress crash dialog/restart
 let quitting = false
+let reloadTimer = null // coalesced window-reload scheduler
+let lastIdleReloadAt = 0
 
 // Surface silent failures: log anything uncaught instead of hanging or dying
 // without output (especially on CI smoke runs).
@@ -52,6 +54,62 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   console.error('[dsh-desktop] unhandledRejection:', reason)
 })
+
+// ---------------------------------------------------------------------------
+// Recovery helpers — the Harness UI reconnects only when it *notices* a dead
+// stream; after sleep/wake or long idle the connection can go half-open and
+// the page stays frozen until a manual refresh. The shell watches the system
+// and the renderer, and reloads the window itself.
+// ---------------------------------------------------------------------------
+
+function scheduleReload(reason, delayMs = 1000) {
+  if (quitting || process.argv.includes('--smoke')) return
+  if (reloadTimer) return // coalesce bursts (e.g. resume + gpu crash)
+  console.log(`[dsh-desktop] scheduling window reload: ${reason}`)
+  reloadTimer = setTimeout(() => {
+    reloadTimer = null
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) win.reload()
+  }, delayMs)
+}
+
+function watchWindowRecovery(win) {
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error('[dsh-desktop] renderer gone:', details.reason)
+    scheduleReload(`renderer gone (${details.reason})`, 500)
+  })
+  let unresponsiveTimer = null
+  win.on('unresponsive', () => {
+    if (unresponsiveTimer) return
+    console.warn('[dsh-desktop] renderer unresponsive — reloading after 30s grace')
+    unresponsiveTimer = setTimeout(() => {
+      unresponsiveTimer = null
+      scheduleReload('renderer unresponsive', 0)
+    }, 30_000)
+  })
+  win.on('responsive', () => {
+    if (unresponsiveTimer) {
+      clearTimeout(unresponsiveTimer)
+      unresponsiveTimer = null
+    }
+  })
+}
+
+function watchIdle() {
+  if (cfg.idleReloadMinutes <= 0 || process.argv.includes('--smoke')) return
+  setInterval(() => {
+    if (quitting) return
+    const idleSeconds = powerMonitor.getSystemIdleTime()
+    const threshold = cfg.idleReloadMinutes * 60
+    if (idleSeconds < threshold) return
+    if (Date.now() - lastIdleReloadAt < threshold * 1000) return
+    const win = getMainWindow()
+    if (!win || win.isDestroyed()) return
+    lastIdleReloadAt = Date.now()
+    console.log(`[dsh-desktop] system idle ${Math.round(idleSeconds)}s — reloading to refresh the event connection`)
+    win.reload()
+  }, 60_000)
+}
 
 // ---------------------------------------------------------------------------
 // Backend lifecycle
@@ -326,11 +384,24 @@ if (!gotLock) {
 } else {
   app.on('second-instance', focusMainWindow)
 
+  // Sleep/wake: the OS tears down idle TCP connections while asleep; the page
+  // may not notice (half-open) and the compositor can go stale — one reload
+  // after resume fixes both.
+  powerMonitor.on('resume', () => scheduleReload('system resumed', 1500))
+
+  // A GPU process crash after wake can leave the window white; Chromium
+  // restarts the process, but a reload forces a clean repaint.
+  app.on('child-process-gone', (_e, details) => {
+    if (details.type === 'gpu') scheduleReload(`gpu process gone (${details.reason ?? 'unknown'})`, 500)
+  })
+
   app.whenReady().then(async () => {
     app.setName(APP_TITLE)
     cfg = loadConfig({ userDataDir: app.getPath('userData') })
     buildMenu()
     createAppWindow()
+    watchWindowRecovery(getMainWindow())
+    watchIdle()
     const smoke = process.argv.includes('--smoke')
     if (smoke) {
       // Attach early, but only accept the Harness app URL as success: the

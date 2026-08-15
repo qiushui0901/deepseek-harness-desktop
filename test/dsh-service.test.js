@@ -50,6 +50,8 @@ test('loadConfig uses defaults when no file and no env', () => {
   assert.deepEqual(cfg.args, ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(DEFAULT_PORT)])
   assert.equal(cfg.autoStart, true)
   assert.equal(cfg.shutdownOnQuit, true)
+  assert.equal(cfg.updateNotifications, true)
+  assert.equal(cfg.idleReloadMinutes, 30)
   assert.equal(cfg.startupTimeoutMs, DEFAULT_STARTUP_TIMEOUT_MS)
   assert.equal(cfg.cwd, undefined)
 })
@@ -78,11 +80,17 @@ test('loadConfig env beats config file', () => {
   const dir = tmpConfig(JSON.stringify({ port: 4000, command: 'pnpm' }))
   const cfg = loadConfig({
     userDataDir: dir,
-    env: { DSH_DESKTOP_PORT: '5000', DSH_DESKTOP_COMMAND: 'yarn', DSH_DESKTOP_ARGS: 'a b c' },
+    env: {
+      DSH_DESKTOP_PORT: '5000',
+      DSH_DESKTOP_COMMAND: 'yarn',
+      DSH_DESKTOP_ARGS: 'a b c',
+      DSH_DESKTOP_IDLE_RELOAD_MINUTES: '0',
+    },
   })
   assert.equal(cfg.port, 5000)
   assert.equal(cfg.command, 'yarn')
   assert.deepEqual(cfg.args, ['a', 'b', 'c'])
+  assert.equal(cfg.idleReloadMinutes, 0)
 })
 
 test('loadConfig tolerates a missing config file', () => {
