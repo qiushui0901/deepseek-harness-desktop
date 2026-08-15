@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PRODUCT = 'DeepSeek Harness Desktop'
-const TIMEOUT_MS = 600_000
+const TIMEOUT_MS = 900_000 // cold npx installs of the dsh tree can take a while
+const STARTUP_TIMEOUT_MS = 480_000
 
 function defaultAppPath() {
   if (process.platform === 'win32') {
@@ -27,7 +28,7 @@ if (!fs.existsSync(appPath)) {
 }
 
 const child = spawn(appPath, ['--smoke'], {
-  env: { ...process.env, DSH_DESKTOP_STARTUP_TIMEOUT_MS: '300000' },
+  env: { ...process.env, DSH_DESKTOP_STARTUP_TIMEOUT_MS: String(STARTUP_TIMEOUT_MS) },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 
