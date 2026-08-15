@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4 (unreleased)
+## 0.1.4 (2026-08-15)
 
 - Fixed: 冒烟测试假阳性——`did-finish-load` 提前挂载后，启动页（file:）先触发导致后端未就绪就"通过"（v0.1.3 的 CI 四平台全为假阳性）；现在只接受 Harness 应用 URL（`http://127.0.0.1:<port>`），启动页跳过、其他页面直接失败。
 - Fixed: 就绪探测只做一次 HTTP 身份检查——后端先回启动页/503 时永久错过就绪（P1）；改为每 ~3 秒重复一次带硬超时的身份检查（TCP 每 tick 探测，HTTP 检查由 2s 竞速包裹，防止 Windows 上 fetch 悬挂）。
