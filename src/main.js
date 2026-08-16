@@ -337,8 +337,21 @@ async function checkForUpdates({ manual = false }) {
     // to bind (EADDRINUSE) and the old exit event could be mistaken for a
     // crash (dialog + extra restart).
     backendStopping = true
-    await stopBackend(backend.proc)
+    const reallyStopped = await stopBackend(backend.proc)
     backendStopping = false
+    if (!reallyStopped) {
+      // The old process is still alive: abort the update. Starting a
+      // replacement now would race the port, and the old process's later
+      // exit must still be handled by the crash path, not swallowed here.
+      dialog.showMessageBox(win, {
+        type: 'warning',
+        title: '无法停止旧后端',
+        message: '旧后端进程未能退出，已取消本次更新。',
+        detail: '请稍后重试，或手动结束占用端口的进程后再试。',
+        buttons: ['知道了'],
+      })
+      return
+    }
     backend = null
     const ok = await startBackend()
     if (ok && !quitting) win.loadURL(APP_URL())

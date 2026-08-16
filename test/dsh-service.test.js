@@ -53,7 +53,7 @@ test('loadConfig uses defaults when no file and no env', () => {
   assert.equal(cfg.autoStart, true)
   assert.equal(cfg.shutdownOnQuit, true)
   assert.equal(cfg.updateNotifications, true)
-  assert.equal(cfg.idleReloadMinutes, 30)
+  assert.equal(cfg.idleReloadMinutes, 0)
   assert.equal(cfg.startupTimeoutMs, DEFAULT_STARTUP_TIMEOUT_MS)
   assert.equal(cfg.cwd, undefined)
 })
@@ -102,17 +102,17 @@ test('loadConfig tolerates a missing config file', () => {
 
 test('loadConfig rejects invalid idleReloadMinutes instead of producing NaN', () => {
   const fromFile = loadConfig({ userDataDir: tmpConfig(JSON.stringify({ idleReloadMinutes: 'abc' })), env: {} })
-  assert.equal(fromFile.idleReloadMinutes, 30)
+  assert.equal(fromFile.idleReloadMinutes, 0)
   const fromEnv = loadConfig({ userDataDir: tmpConfig('{}'), env: { DSH_DESKTOP_IDLE_RELOAD_MINUTES: 'not-a-number' } })
-  assert.equal(fromEnv.idleReloadMinutes, 30)
+  assert.equal(fromEnv.idleReloadMinutes, 0)
   const negative = loadConfig({ userDataDir: tmpConfig(JSON.stringify({ idleReloadMinutes: -5 })), env: {} })
-  assert.equal(negative.idleReloadMinutes, 30)
+  assert.equal(negative.idleReloadMinutes, 0)
 })
 
-test('stopBackend resolves immediately when the child is already gone', async () => {
+test('stopBackend resolves true immediately when the child is already gone', async () => {
   const child = spawn(process.execPath, ['-e', 'process.exit(0)'])
   await new Promise((resolve) => child.on('exit', resolve))
-  await stopBackend(child) // must not hang
+  assert.equal(await stopBackend(child), true) // must not hang
 })
 
 function spawnSigtermIgnoringChild() {
@@ -126,28 +126,38 @@ function spawnSigtermIgnoringChild() {
   return new Promise((resolve) => child.stdout.once('data', () => resolve(child)))
 }
 
-test('stopBackend waits for real exit and escalates to SIGKILL on POSIX', async () => {
-  // A child that ignores SIGTERM: stopBackend must escalate and resolve via
-  // the exit event (well before the settle safety net).
+const posix = process.platform !== 'win32'
+
+test('stopBackend waits for real exit and escalates to SIGKILL on POSIX', { skip: !posix }, async () => {
+  // A child that ignores SIGTERM: stopBackend must escalate and resolve true
+  // via the exit event (well before the settle safety net). Windows CI uses
+  // taskkill /F, which terminates immediately — signal semantics differ.
   const child = await spawnSigtermIgnoringChild()
   const started = Date.now()
-  await stopBackend(child, process.platform, { settleMs: 4000, escalateMs: 200 })
+  assert.equal(await stopBackend(child, process.platform, { settleMs: 4000, escalateMs: 200 }), true)
   const elapsed = Date.now() - started
-  // Signal deaths leave exitCode null and signalCode set — either means gone.
-  assert.ok(child.exitCode !== null || child.signalCode !== null, 'child is gone')
   assert.ok(elapsed < 3000, `settled via exit, not the safety net (${elapsed}ms)`)
 })
 
-test('stopBackend safety net resolves even when exit never fires', async () => {
+test('stopBackend safety net resolves false when exit never fires', { skip: !posix }, async () => {
   // A child that ignores SIGTERM and cannot be reaped within settleMs: the
-  // universal safety net must still resolve. Use a very short settleMs and an
-  // escalation longer than it so the net fires first.
+  // universal safety net must still resolve — as false, because the process
+  // is still alive and a replacement must not be started.
   const child = await spawnSigtermIgnoringChild()
   const started = Date.now()
-  await stopBackend(child, process.platform, { settleMs: 300, escalateMs: 10_000 })
+  assert.equal(await stopBackend(child, process.platform, { settleMs: 300, escalateMs: 10_000 }), false)
   const elapsed = Date.now() - started
   assert.ok(elapsed >= 250 && elapsed < 2000, `resolved via safety net (${elapsed}ms)`)
   child.kill('SIGKILL') // the deferred escalation never runs — clean up manually
+})
+
+test('stopBackend win32 branch terminates the child (taskkill or fallback)', async () => {
+  // On Windows CI this exercises the real taskkill /T /F path; on POSIX hosts
+  // taskkill is missing, the spawn-error fallback (proc.kill) runs instead —
+  // either way the child must end and stopBackend must resolve true.
+  const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'])
+  assert.equal(await stopBackend(child, 'win32', { settleMs: 4000 }), true)
+  assert.ok(child.exitCode !== null || child.signalCode !== null, 'child is gone')
 })
 
 test('resolveCommand appends .cmd for bare names on win32 only', () => {

@@ -125,7 +125,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
   "autoStart": true,
   "shutdownOnQuit": true,
   "updateNotifications": true,
-  "idleReloadMinutes": 30,
+  "idleReloadMinutes": 0,
   "dshVersion": "0.1.0-rc.6",
   "startupTimeoutMs": 180000
 }
@@ -138,7 +138,7 @@ Windows 为 `%APPDATA%\DeepSeek Harness Desktop\config.json`。文件可选，�
 | `autoStart` | 端口无监听时自动启动后端（默认 `true`） |
 | `shutdownOnQuit` | 退出时停止由本应用启动的后端（默认 `true`） |
 | `updateNotifications` | 启动后自动检查 npm 最新版并提示（默认 `true`） |
-| `idleReloadMinutes` | 系统空闲超过该分钟数且后端健康时自动重载页面（修复半开事件连接；`0` 关闭，默认 `30`） |
+| `idleReloadMinutes` | 系统空闲超过该分钟数且后端健康时自动重载页面（修复半开事件连接；默认 `0` 关闭，需要时开启） |
 | `dshVersion` | 固定后端版本（如 `0.1.0-rc.6`）；不设置则始终跟随最新版 |
 | `startupTimeoutMs` | 就绪等待超时，超时后显示错误页 |
 

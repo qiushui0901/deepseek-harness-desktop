@@ -57,8 +57,11 @@ export function loadConfig({ userDataDir, env = process.env, overrides = {} } = 
     idleReloadMinutes: (() => {
       // Number() of garbage yields NaN, which would disable every guard in
       // the idle watcher and reload every minute — validate explicitly.
-      const raw = Number(env.DSH_DESKTOP_IDLE_RELOAD_MINUTES ?? file.idleReloadMinutes ?? 30)
-      return Number.isFinite(raw) && raw >= 0 ? raw : 30
+      // Default 0: idle refreshes are opt-in, because a half-open event
+      // stream is not detectable from outside the page, so this cannot tell
+      // a healthy page from a stale one.
+      const raw = Number(env.DSH_DESKTOP_IDLE_RELOAD_MINUTES ?? file.idleReloadMinutes ?? 0)
+      return Number.isFinite(raw) && raw >= 0 ? raw : 0
     })(),
     dshVersion,
     startupTimeoutMs: Number(
@@ -276,26 +279,37 @@ export function spawnBackend(cfg, { command = resolveCommand(cfg.command), pathE
 }
 
 /**
- * Stop the backend and resolve once the process has actually exited — so a
- * replacement backend can bind the port without racing the old one. The
- * `exit` event settles the promise; a universal safety net (`settleMs`, all
- * platforms) resolves no matter what, so callers never hang on a zombie.
- * `escalateMs` is the POSIX SIGTERM → SIGKILL grace period.
+ * Stop the backend and resolve to whether the process **actually exited** —
+ * so a replacement backend can bind the port without racing the old one.
+ * The `exit` event resolves `true`; a universal safety net (`settleMs`, all
+ * platforms) resolves `false` when the process is still alive, and callers
+ * must then abort the replacement (a live process still owns the port, and
+ * its later exit would otherwise look like a crash). `escalateMs` is the
+ * POSIX SIGTERM → SIGKILL grace period.
  */
 export function stopBackend(proc, platform = process.platform, { settleMs = 8000, escalateMs = 3000 } = {}) {
-  if (!proc) return Promise.resolve()
+  if (!proc) return Promise.resolve(true)
   return new Promise((resolve) => {
-    const done = () => resolve()
-    if (proc.exitCode !== null || proc.signalCode !== null) return done()
-    proc.once('exit', done)
+    let settled = false
+    let settlement = null
+    const alreadyGone = () => proc.exitCode !== null || proc.signalCode !== null
+    const finish = (reallyExited) => {
+      if (settled) return
+      settled = true
+      if (settlement) clearTimeout(settlement)
+      resolve(reallyExited)
+    }
+    const onExit = () => finish(true)
+    if (alreadyGone()) return finish(true)
+    proc.once('exit', onExit)
     // Re-check after registering: nothing asynchronous runs between the check
     // and the registration, but the guard keeps the "already exited" contract
     // explicit and costs nothing.
-    if (proc.exitCode !== null || proc.signalCode !== null) {
-      proc.removeListener('exit', done)
-      return done()
+    if (alreadyGone()) {
+      proc.removeListener('exit', onExit)
+      return finish(true)
     }
-    const settlement = setTimeout(done, settleMs)
+    settlement = setTimeout(() => finish(alreadyGone()), settleMs)
     settlement.unref()
     if (platform === 'win32') {
       // Kill the whole process tree (npx -> dsh); plain proc.kill() would orphan
@@ -311,7 +325,7 @@ export function stopBackend(proc, platform = process.platform, { settleMs = 8000
       // `proc.killed` only means the signal was *sent*, not that the process
       // exited — so escalate to SIGKILL based on the exit state instead.
       const timer = setTimeout(() => {
-        if (proc.exitCode === null && proc.signalCode === null) proc.kill('SIGKILL')
+        if (!alreadyGone()) proc.kill('SIGKILL')
       }, escalateMs)
       timer.unref()
     }
