@@ -96,18 +96,34 @@ function watchWindowRecovery(win) {
 }
 
 function watchIdle() {
-  if (cfg.idleReloadMinutes <= 0 || process.argv.includes('--smoke')) return
-  setInterval(() => {
+  if (process.argv.includes('--smoke')) return
+  setInterval(async () => {
     if (quitting) return
+    const win = getMainWindow()
+    if (!win || win.isDestroyed()) return
+    // Page health: a frozen renderer (e.g. after wake) must recover even when
+    // the 'unresponsive' event never fires.
+    try {
+      await withTimeout(win.webContents.executeJavaScript('1', true), 2000)
+    } catch {
+      scheduleReload('renderer unresponsive (health check)')
+      return
+    }
+    if (!Number.isFinite(cfg.idleReloadMinutes) || cfg.idleReloadMinutes <= 0) return
     const idleSeconds = powerMonitor.getSystemIdleTime()
     const threshold = cfg.idleReloadMinutes * 60
     if (idleSeconds < threshold) return
     if (Date.now() - lastIdleReloadAt < threshold * 1000) return
-    const win = getMainWindow()
-    if (!win || win.isDestroyed()) return
+    // Reload on idle only when the backend is reachable: a healthy backend
+    // plus an idle-severed event stream is the half-open failure this reload
+    // repairs, and the user is away (system idle) so it cannot interrupt
+    // them. A down backend skips the reload — crash recovery owns that case.
+    const probe = await probeHarness(cfg.port)
+    if (!probe.ok) return
     lastIdleReloadAt = Date.now()
-    console.log(`[dsh-desktop] system idle ${Math.round(idleSeconds)}s — reloading to refresh the event connection`)
-    win.reload()
+    // Route through scheduleReload so a pending resume/GPU reload coalesces
+    // instead of double-refreshing.
+    scheduleReload(`system idle ${Math.round(idleSeconds)}s with healthy backend`, 0)
   }, 60_000)
 }
 

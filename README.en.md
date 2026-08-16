@@ -147,7 +147,7 @@ keys have defaults:
 | `autoStart` | Start the backend when nothing listens (default `true`) |
 | `shutdownOnQuit` | Stop the backend the app started when quitting (default `true`) |
 | `updateNotifications` | Auto-check the npm registry after startup and notify (default `true`) |
-| `idleReloadMinutes` | Reload the page after this many minutes of system idle to refresh the event connection (`0` disables, default `30`) |
+| `idleReloadMinutes` | Reload the page after this many minutes of system idle when the backend is healthy (repairs half-open event connections; `0` disables, default `30`) |
 | `dshVersion` | Pin the backend version (e.g. `0.1.0-rc.6`); unset = always follow the latest |
 | `startupTimeoutMs` | How long to wait for readiness before showing an error |
 

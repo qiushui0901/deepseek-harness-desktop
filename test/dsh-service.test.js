@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
@@ -14,6 +15,7 @@ import {
   waitForPort,
   probeHarness,
   waitForHarness,
+  stopBackend,
   DEFAULT_PORT,
   DEFAULT_STARTUP_TIMEOUT_MS,
 } from '../src/dsh-service.js'
@@ -96,6 +98,56 @@ test('loadConfig env beats config file', () => {
 test('loadConfig tolerates a missing config file', () => {
   const cfg = loadConfig({ userDataDir: path.join(os.tmpdir(), 'does-not-exist-xyz'), env: {} })
   assert.equal(cfg.port, DEFAULT_PORT)
+})
+
+test('loadConfig rejects invalid idleReloadMinutes instead of producing NaN', () => {
+  const fromFile = loadConfig({ userDataDir: tmpConfig(JSON.stringify({ idleReloadMinutes: 'abc' })), env: {} })
+  assert.equal(fromFile.idleReloadMinutes, 30)
+  const fromEnv = loadConfig({ userDataDir: tmpConfig('{}'), env: { DSH_DESKTOP_IDLE_RELOAD_MINUTES: 'not-a-number' } })
+  assert.equal(fromEnv.idleReloadMinutes, 30)
+  const negative = loadConfig({ userDataDir: tmpConfig(JSON.stringify({ idleReloadMinutes: -5 })), env: {} })
+  assert.equal(negative.idleReloadMinutes, 30)
+})
+
+test('stopBackend resolves immediately when the child is already gone', async () => {
+  const child = spawn(process.execPath, ['-e', 'process.exit(0)'])
+  await new Promise((resolve) => child.on('exit', resolve))
+  await stopBackend(child) // must not hang
+})
+
+function spawnSigtermIgnoringChild() {
+  const child = spawn(
+    process.execPath,
+    ['-e', "process.on('SIGTERM', () => {}); console.log('ready'); setInterval(() => {}, 1000)"],
+    { stdio: ['ignore', 'pipe', 'ignore'] },
+  )
+  // Wait for the handler to be installed: killing earlier races node startup
+  // and the default SIGTERM action terminates the child.
+  return new Promise((resolve) => child.stdout.once('data', () => resolve(child)))
+}
+
+test('stopBackend waits for real exit and escalates to SIGKILL on POSIX', async () => {
+  // A child that ignores SIGTERM: stopBackend must escalate and resolve via
+  // the exit event (well before the settle safety net).
+  const child = await spawnSigtermIgnoringChild()
+  const started = Date.now()
+  await stopBackend(child, process.platform, { settleMs: 4000, escalateMs: 200 })
+  const elapsed = Date.now() - started
+  // Signal deaths leave exitCode null and signalCode set — either means gone.
+  assert.ok(child.exitCode !== null || child.signalCode !== null, 'child is gone')
+  assert.ok(elapsed < 3000, `settled via exit, not the safety net (${elapsed}ms)`)
+})
+
+test('stopBackend safety net resolves even when exit never fires', async () => {
+  // A child that ignores SIGTERM and cannot be reaped within settleMs: the
+  // universal safety net must still resolve. Use a very short settleMs and an
+  // escalation longer than it so the net fires first.
+  const child = await spawnSigtermIgnoringChild()
+  const started = Date.now()
+  await stopBackend(child, process.platform, { settleMs: 300, escalateMs: 10_000 })
+  const elapsed = Date.now() - started
+  assert.ok(elapsed >= 250 && elapsed < 2000, `resolved via safety net (${elapsed}ms)`)
+  child.kill('SIGKILL') // the deferred escalation never runs — clean up manually
 })
 
 test('resolveCommand appends .cmd for bare names on win32 only', () => {

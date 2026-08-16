@@ -4,6 +4,11 @@
 
 - Fixed: 睡眠唤醒/长时间空闲后白屏——harness 前端只在"检测到"事件流关闭时才自动重连，而睡眠/空闲会造成**半开连接**（双方都感知不到断开，永不触发重连）；桌面壳新增四层自动恢复：`powerMonitor` 唤醒后自动重载、渲染进程崩溃/无响应（30 秒宽限）自动重载、GPU 进程崩溃后重载（macOS 唤醒白窗）、系统空闲超 `idleReloadMinutes`（默认 30 分钟，可配置/可关闭）自动重载刷新连接。浏览器端同样受半开连接影响（需上游服务端心跳才能真正根治）。
 - Added: 配置项 `idleReloadMinutes`（默认 30，`0` 关闭）+ 环境变量 `DSH_DESKTOP_IDLE_RELOAD_MINUTES`。
+- Fixed: `stopBackend` POSIX 下可能永久等待（P1）——结算安全网（8s，可注入 `settleMs`）现覆盖所有平台，并在注册 `exit` 监听后复查退出状态；新增真实子进程测试（SIGTERM 忽略 → SIGKILL 升级、安全网兜底、已退出直返）。
+- Fixed: 系统空闲无条件刷新健康页面（P2）——空闲重载现在只在**后端健康**（`probeHarness` 通过）时触发（健康后端 + 空闲切断的事件流 = 半开故障；后端宕机时跳过，交给崩溃恢复路径）；另增每 60 秒的渲染进程存活探测（`executeJavaScript` 2s 超时），挂死渲染进程无需等 `unresponsive` 事件即可恢复。
+- Fixed: 无效空闲配置导致 NaN 每分钟刷新（P2）——`idleReloadMinutes` 用 `Number.isFinite` 校验，非法值回退默认 30。
+- Fixed: 唤醒时可能连续刷新两次（P2）——空闲重载改走 `scheduleReload`（与 resume/GPU 重载合并防抖）。
+- Added: 单元测试 4 个（NaN 配置、stopBackend 三态），共 51 个。
 
 ## 0.1.4 (2026-08-15)
 
